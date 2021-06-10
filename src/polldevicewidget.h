@@ -1,4 +1,4 @@
-#ifndef POLLDEVICEWIDGET_H
+﻿#ifndef POLLDEVICEWIDGET_H
 #define POLLDEVICEWIDGET_H
 
 #include <QWidget>
@@ -15,6 +15,11 @@ public:
     explicit PollDeviceWidget(QWidget *parent = nullptr);
     ~PollDeviceWidget();
 
+public slots:
+    void onRecvData(quint8 type,const QVariant &);
+private:
+    //加载设备数据
+    void loadDevData();
 private:
     Ui::PollDeviceWidget *ui;
 };

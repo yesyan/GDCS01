@@ -4,6 +4,7 @@
 #include <QObject>
 #include "modbus.h"
 #include <QThread>
+#include "global.h"
 
 class ModBusObj : public QObject
 {
@@ -14,6 +15,8 @@ public:
     ModBusObj(QObject *parent = nullptr);
     ~ModBusObj();
 
+signals:
+    void signalPollParam(quint8 paramType, const QVariant &);
 public slots:
     //网络连接
     int netWorkConnect(const QString &ip,int port);
@@ -27,15 +30,17 @@ public slots:
     //获取分机设备参数
     int getSlaveDevParam(int slave,QVariantHash &value);
 
-
-    //设置系统时间
-    int setSysTime(const QDateTime &dateTime);
-
+    //操作主机参数
+    void pollParam(quint8 opType, quint8 paramType,const QVariant &param);
 
 private:
-    //停止连接
     int stopConnect();
+    void readPollSysParam();
+    void readPollNetParam();
+    void writePollNetParam(const QVariant &);
 
+    void readPollSerialPortParam();
+    void writePollSerialPortParam(const QVariant &);
 private:
     modbus_t *m_modBusCtx = nullptr;
     QString m_connectType;
@@ -55,13 +60,24 @@ public:
     int connectToNet(const QString &ip,int port);
     int connectToSerialPort(const QString &dev,int baud,char parity,int dataBit,int stopBit);
 
+    //操作方式，读取或者写入
+    enum OperationType{
+        READ  = 0,
+        WRITE = 1
+    };
+
+    enum ParamType{
+        PollSysParam = 0, //主机系统参数
+        PollNetParam,     //主机网络参数
+        PollSpParam       //主机串口参数
+    };
+
+public:
+    void pollParam(OperationType opType,ParamType paramType,const QVariant &param);
 
 signals:
-    void getSlaveSimpleInfo(int slave);
-    void getSlaveDevParam(int slave);
-
-    void slaveSimpleInfo(const QVariantHash &);
-    void slaveDevParam(const QVariantHash &);
+    //主机数据
+    void signalPollParam(quint8 type,const QVariant &);
 
 private:
     ModBusObjInstance();

@@ -4,10 +4,12 @@
 #include "connectdialog.h"
 #include "modbusobj.h"
 #include "polldevicewidget.h"
+#include "loghandler.h"
 
 #include <QStackedLayout>
 #include <QTableWidget>
 #include <QMenu>
+#include <QTextEdit>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -16,12 +18,11 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
 
     initUi();
-    //showMaximized();
+
+    setWindowTitle(QStringLiteral("振动软件"));
     //读取主机参数
     //检测分机状态
     checkSlaveStatus();
-
-    connect(ModBusObjInstance::getInstance(),&ModBusObjInstance::slaveDevParam,this,&MainWindow::onSlaveSimpleInfo);
 }
 
 MainWindow::~MainWindow()
@@ -53,16 +54,21 @@ void MainWindow::initUi()
 
     m_devWid = new DeviceWidget;
     layout->addWidget(m_devWid);
-
+    connect(m_devWid,&DeviceWidget::signalBack,this,[=](){
+        layout->setCurrentIndex(0);
+    });
     ui->tab_2->setLayout(layout);
 
     connect(m_slaveTableWidget,&QTableWidget::doubleClicked,this,[=](const QModelIndex &index){
-
-        //TODO 设置数据
-        //auto row = index.row();
-        //切换界面
+        auto row = index.row();
+        m_devWid->loadData(row);
         layout->setCurrentIndex(1);
     });
+
+    auto tlayout = new QHBoxLayout;
+    auto textEdit = LogHandler::getInstance()->getTextView();
+    tlayout->addWidget(textEdit);
+    ui->widget->setLayout(tlayout);
 }
 
 void MainWindow::checkSlaveStatus()

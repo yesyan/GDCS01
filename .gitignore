@@ -1,0 +1,8 @@
+
+src/modbusobj.cpp
+src/modbusobj.h
+src/polldevicewidget.cpp
+src/polldevicewidget.h
+src/polldevicewidget.ui
+src/qss/WhiteStyle.qss
+src/res.qrc

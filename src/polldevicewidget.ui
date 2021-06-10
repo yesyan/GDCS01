@@ -24,7 +24,11 @@
       </widget>
      </item>
      <item>
-      <widget class="QLineEdit" name="lineEdit_3"/>
+      <widget class="QLineEdit" name="lineEdit_devId">
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+      </widget>
      </item>
     </layout>
    </item>
@@ -38,7 +42,11 @@
       </widget>
      </item>
      <item>
-      <widget class="QLineEdit" name="lineEdit_2"/>
+      <widget class="QLineEdit" name="lineEdit_softversion">
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+      </widget>
      </item>
     </layout>
    </item>
@@ -52,7 +60,11 @@
       </widget>
      </item>
      <item>
-      <widget class="QLineEdit" name="lineEdit"/>
+      <widget class="QLineEdit" name="lineEdit_hardversion">
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+      </widget>
      </item>
     </layout>
    </item>
@@ -69,7 +81,7 @@
       <widget class="QDateTimeEdit" name="dateTimeEdit"/>
      </item>
      <item>
-      <widget class="QPushButton" name="pushButton_3">
+      <widget class="QPushButton" name="pushButton_sysTime">
        <property name="text">
         <string>配置生效</string>
        </property>
@@ -157,7 +169,7 @@
        </widget>
       </item>
       <item row="0" column="1">
-       <widget class="QLineEdit" name="lineEdit_4"/>
+       <widget class="QLineEdit" name="lineEdit_localIp"/>
       </item>
       <item row="1" column="0">
        <widget class="QLabel" name="label_9">
@@ -167,7 +179,7 @@
        </widget>
       </item>
       <item row="1" column="1">
-       <widget class="QLineEdit" name="lineEdit_9"/>
+       <widget class="QLineEdit" name="lineEdit_remoteIp"/>
       </item>
       <item row="2" column="0">
        <widget class="QLabel" name="label_5">
@@ -177,7 +189,7 @@
        </widget>
       </item>
       <item row="2" column="1">
-       <widget class="QLineEdit" name="lineEdit_5"/>
+       <widget class="QLineEdit" name="lineEdit_getaway"/>
       </item>
       <item row="3" column="0">
        <widget class="QLabel" name="label_6">
@@ -187,7 +199,7 @@
        </widget>
       </item>
       <item row="3" column="1">
-       <widget class="QLineEdit" name="lineEdit_6"/>
+       <widget class="QLineEdit" name="lineEdit_dns"/>
       </item>
       <item row="4" column="0">
        <widget class="QLabel" name="label_7">
@@ -196,9 +208,6 @@
         </property>
        </widget>
       </item>
-      <item row="4" column="1">
-       <widget class="QLineEdit" name="lineEdit_7"/>
-      </item>
       <item row="5" column="0">
        <widget class="QLabel" name="label_10">
         <property name="text">
@@ -206,15 +215,18 @@
         </property>
        </widget>
       </item>
-      <item row="5" column="1">
-       <widget class="QLineEdit" name="lineEdit_10"/>
-      </item>
       <item row="6" column="1">
        <widget class="QPushButton" name="pushButton">
         <property name="text">
          <string>配置生效</string>
         </property>
        </widget>
+      </item>
+      <item row="4" column="1">
+       <widget class="QSpinBox" name="spinBox_localPort"/>
+      </item>
+      <item row="5" column="1">
+       <widget class="QSpinBox" name="spinBox_remotePort"/>
       </item>
      </layout>
     </widget>

@@ -1,4 +1,4 @@
-QT       += core gui
+QT       += core
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -23,6 +23,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 SOURCES += \
     connectdialog.cpp \
     devicewidget.cpp \
+    loghandler.cpp \
     main.cpp \
     mainwindow.cpp \
     modbusobj.cpp \
@@ -32,6 +33,7 @@ HEADERS += \
     connectdialog.h \
     devicewidget.h \
     global.h \
+    loghandler.h \
     mainwindow.h \
     modbusobj.h \
     polldevicewidget.h
@@ -46,3 +48,8 @@ FORMS += \
 qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
+
+DISTFILES +=
+
+RESOURCES += \
+    res.qrc

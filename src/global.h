@@ -3,6 +3,7 @@
 
 #include <QString>
 #include <QObject>
+#include <QDateTime>
 
 static const QString HardwareVersion = QStringLiteral("硬件版本");
 
@@ -20,22 +21,42 @@ static const QString SysDateTime = QStringLiteral("系统时间");
 
 static const QString DevParam  = QStringLiteral("设备参数");
 
-//设备参数
-class DeviceParam{
+
+//主机系统参数
+struct PollSysParam{
 
 public:
-    uint16_t xAcc = 0;
-    uint16_t xSpe = 0;
-    uint16_t xAmp = 0;
-    uint16_t yAcc = 0;
-    uint16_t ySpe = 0;
-    uint16_t yAmp = 0;
-    uint16_t zAcc = 0;
-    uint16_t zSpe = 0;
-    uint16_t zAmp = 0;
-    uint16_t tmp = 0;
-    uint16_t JGtime = 0;
+    QString devId;
+    QString softVersion;
+    QString hardVersion;
+    QString sysDataTime;
 };
-Q_DECLARE_METATYPE(DeviceParam);
+Q_DECLARE_METATYPE(PollSysParam);
+
+
+//主机网络参数
+struct PollNetParam{
+
+public:
+    QString  localIP;
+    quint16  localPort = 0;
+    QString  remoteIP;
+    quint16  remotePort = 0;
+    QString  dns;
+    QString  gateWay;
+};
+Q_DECLARE_METATYPE(PollNetParam);
+
+
+//主机串口参数
+struct PollSerialPortParam{
+
+public:
+    quint16 baud;
+    quint16 cycleSize;//轮询设备长度
+    quint16  param;
+};
+Q_DECLARE_METATYPE(PollSerialPortParam);
+
 
 #endif // GLOBAL_H

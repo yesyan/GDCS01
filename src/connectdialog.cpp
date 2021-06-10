@@ -6,7 +6,7 @@ ConnectDialog::ConnectDialog(QWidget *parent) :
     ui(new Ui::ConnectDialog)
 {
     ui->setupUi(this);
-
+    setWindowTitle(QStringLiteral("连接方式"));
     ui->groupBox->setDisabled(true);
     connect(ui->checkBox_net,&QCheckBox::stateChanged,this,[this](int state){
         if(state == Qt::Checked){

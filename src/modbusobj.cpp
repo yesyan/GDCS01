@@ -92,14 +92,9 @@ int ModBusObj::getSlaveSimpleInfo(int slave, QVariantHash &value)
         qInfo() << QStringLiteral("读取分机(%1)系统参数失败.").arg(slave);
         return ret;
     }
-    //硬件版本
-    value.insert(HardwareVersion,tmpData[0]);
-    //软件版本
-    value.insert(SoftwareVersion,tmpData[1]);
-    auto devId = (tmpData[2] << 16) & 0xff;
-    devId |= (tmpData[3] & 0xff);
+
     //设备id
-    value.insert(DeviceID,devId);
+    //value.insert(DeviceID,devId);
     //设备型号
     QByteArray devType;
     devType.resize(20);
@@ -153,26 +148,32 @@ int ModBusObj::getSlaveDevParam(int slave, QVariantHash &value)
     //设备参数
     tmpData.fill(0,11);
     ret = modbus_read_registers(m_modBusCtx, 128, 11, tmpData.data());
-    DeviceParam devParam;
-    devParam.xAcc = tmpData[0];
-    devParam.xSpe = tmpData[1];
-    devParam.xAmp = tmpData[2];
-    devParam.yAcc = tmpData[3];
-    devParam.ySpe = tmpData[4];
-    devParam.yAmp = tmpData[5];
-    devParam.zAcc = tmpData[6];
-    devParam.zSpe = tmpData[7];
-    devParam.zAmp = tmpData[8];
-    devParam.tmp  = tmpData[9];
-    devParam.JGtime = tmpData[10];
-    value.insert(DevParam,QVariant::fromValue(devParam));
 
     return 0;
 }
 
-int ModBusObj::setSysTime(const QDateTime &)
+void ModBusObj::pollParam(quint8 opType, quint8 paramType, const QVariant &param)
 {
-    return 0;
+    if(0 == opType && 0 == paramType){
+        readPollSysParam();
+
+    }else if(0 == opType && 1 == paramType){
+        //读取主机网路参数
+        readPollNetParam();
+
+    }else if(1 == opType && 1 == paramType){
+        //写入主机网络参数
+        writePollNetParam(param);
+
+    }else if(0 == opType && 2 == paramType){
+        //读取主机串口参数
+        readPollSerialPortParam();
+
+    }else if(1 == opType && 2 == paramType){
+        //写入主机串口数据
+        writePollSerialPortParam(param);
+
+    }
 }
 
 int ModBusObj::stopConnect()
@@ -185,6 +186,82 @@ int ModBusObj::stopConnect()
     return 0;
 }
 
+void ModBusObj::readPollSysParam()
+{
+    QVector<uint16_t> tmpData;
+    tmpData.resize(4);
+    auto ret = modbus_read_input_registers(m_modBusCtx,0,4,tmpData.data());
+    if(ret == -1){
+        qInfo() << QStringLiteral("读取主机系统参数失败.");
+    }
+    auto devId = (tmpData[2] << 16) & 0xff;
+    devId |= (tmpData[3] & 0xff);
+
+    PollSysParam sysParam;
+    sysParam.hardVersion = tmpData[0];
+    sysParam.softVersion = tmpData[1];
+    sysParam.devId = devId;
+
+    emit signalPollParam(0,QVariant::fromValue(sysParam));
+}
+
+void ModBusObj::readPollNetParam()
+{
+    QVector<uint16_t> tmpData;
+    tmpData.resize(13);
+
+    //本地ip、网关、DNS、本地端口
+    auto ret = modbus_read_registers(m_modBusCtx,0,13,tmpData.data());
+    if(ret == -1){
+        qInfo() << QStringLiteral("读取主机网络参数失败.");
+    }
+    PollNetParam pollNetParam;
+    pollNetParam.localIP = QString("%1.%2.%3.%4").arg(tmpData[0]).arg(tmpData[1]).arg(tmpData[2]).arg(tmpData[3]);
+    pollNetParam.gateWay = QString("%1.%2.%3.%4").arg(tmpData[4]).arg(tmpData[5]).arg(tmpData[6]).arg(tmpData[7]);
+    pollNetParam.dns     = QString("%1.%2.%3.%4").arg(tmpData[8]).arg(tmpData[9]).arg(tmpData[10]).arg(tmpData[11]);
+    pollNetParam.localPort = tmpData[12];
+    tmpData.fill(0);
+
+    ret = modbus_read_registers(m_modBusCtx,26,5,tmpData.data());
+    if(ret == -1){
+        qInfo() << QStringLiteral("读取主机网络参数失败.");
+    }
+    pollNetParam.remoteIP   = QString("%1.%2.%3.%4").arg(tmpData[0]).arg(tmpData[1]).arg(tmpData[2]).arg(tmpData[3]);
+    pollNetParam.remotePort = tmpData[4];
+
+    emit signalPollParam(1,QVariant::fromValue(pollNetParam));
+}
+
+void ModBusObj::writePollNetParam(const QVariant &value)
+{
+}
+
+void ModBusObj::readPollSerialPortParam()
+{
+    QVector<uint16_t> tmpData;
+    tmpData.resize(4);
+
+    auto ret = modbus_read_registers(m_modBusCtx,13,4,tmpData.data());
+    if(ret == -1){
+        qInfo() << QStringLiteral("读取主机网络参数失败.");
+    }
+    PollSerialPortParam pollSpParam;
+    auto baud = (tmpData[0] << 16) & 0xff;
+    baud |= (tmpData[1] & 0xff);
+
+    pollSpParam.baud = baud;
+    pollSpParam.param = tmpData[2];
+    pollSpParam.cycleSize = tmpData[3];
+
+    emit signalPollParam(2,QVariant::fromValue(pollSpParam));
+
+}
+
+void ModBusObj::writePollSerialPortParam(const QVariant &value)
+{
+
+}
+
 int ModBusObjInstance::connectToNet(const QString &ip, int port)
 {
     return m_modBusObj->netWorkConnect(ip,port);
@@ -195,11 +272,24 @@ int ModBusObjInstance::connectToSerialPort(const QString &dev, int baud, char pa
     return m_modBusObj->serialPortConnect(dev,baud,parity,dataBit,stopBit);
 }
 
+void ModBusObjInstance::pollParam(ModBusObjInstance::OperationType opType, ModBusObjInstance::ParamType paramType, const QVariant &param)
+{
+    if(nullptr == m_modBusObj)
+        return;
+    QMetaObject::invokeMethod(m_modBusObj,"pollParam",Qt::AutoConnection,
+                              Q_ARG(quint8, opType),Q_ARG(quint8, paramType),
+                              Q_ARG(const QVariant &,param));
+}
+
 ModBusObjInstance::ModBusObjInstance()
 {
     m_modBusObj = new ModBusObj;
     m_modBusObj->moveToThread(&m_thread);
     connect(&m_thread, &QThread::finished, m_modBusObj, &QObject::deleteLater);
+
+    //主机回传参数
+    connect(m_modBusObj,&ModBusObj::signalPollParam,this,&ModBusObjInstance::signalPollParam);
+    //分机回传参数
     m_thread.start();
 }
 

@@ -1,4 +1,4 @@
-#ifndef DEVICEWIDGET_H
+﻿#ifndef DEVICEWIDGET_H
 #define DEVICEWIDGET_H
 
 #include <QWidget>
@@ -15,6 +15,12 @@ public:
     explicit DeviceWidget(QWidget *parent = nullptr);
     ~DeviceWidget();
 
+    void loadData(uint8_t slave);
+signals:
+    void signalBack();
+
+private:
+    void initUi();
 private:
     Ui::DeviceWidget *ui;
 };
