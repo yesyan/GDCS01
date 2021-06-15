@@ -193,6 +193,7 @@ void ModBusObj::readPollSysParam()
     auto ret = modbus_read_input_registers(m_modBusCtx,0,4,tmpData.data());
     if(ret == -1){
         qInfo() << QStringLiteral("读取主机系统参数失败.");
+        return;
     }
     auto devId = (tmpData[2] << 16) & 0xff;
     devId |= (tmpData[3] & 0xff);
@@ -201,6 +202,16 @@ void ModBusObj::readPollSysParam()
     sysParam.hardVersion = tmpData[0];
     sysParam.softVersion = tmpData[1];
     sysParam.devId = devId;
+
+    tmpData.fill(0);
+    ret = modbus_read_input_registers(m_modBusCtx,20,3,tmpData.data());
+    if(ret == -1){
+        qInfo() << QStringLiteral("读取系统时间失败.");
+        return;
+    }
+    sysParam.sysDataTime = QStringLiteral("%1年%2月%3日%4时%5分%6秒").arg(tmpData[0]>>8 & 0xff).arg(tmpData[0] & 0xff)\
+                                                                   .arg(tmpData[1]>>8 & 0xff).arg(tmpData[1] & 0xff)\
+                                                                   .arg(tmpData[2]>>8 & 0xff).arg(tmpData[2] & 0xff);
 
     emit signalPollParam(0,QVariant::fromValue(sysParam));
 }

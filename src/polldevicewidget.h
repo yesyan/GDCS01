@@ -17,6 +17,10 @@ public:
 
 public slots:
     void onRecvData(quint8 type,const QVariant &);
+    void on_pushButton_sysTime_clicked();
+    void on_pushButton_net_clicked();
+    void on_pushButton_serialport_clicked();
+
 private:
     //加载设备数据
     void loadDevData();

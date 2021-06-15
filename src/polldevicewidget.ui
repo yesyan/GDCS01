@@ -78,7 +78,7 @@
       </widget>
      </item>
      <item>
-      <widget class="QDateTimeEdit" name="dateTimeEdit"/>
+      <widget class="QLineEdit" name="lineEdit_sysdatetime"/>
      </item>
      <item>
       <widget class="QPushButton" name="pushButton_sysTime">
@@ -103,7 +103,7 @@
        </widget>
       </item>
       <item row="0" column="1">
-       <widget class="QComboBox" name="comboBox_3"/>
+       <widget class="QComboBox" name="comboBox_baud"/>
       </item>
       <item row="1" column="0">
        <widget class="QLabel" name="label_11">
@@ -113,7 +113,23 @@
        </widget>
       </item>
       <item row="1" column="1">
-       <widget class="QComboBox" name="comboBox"/>
+       <widget class="QComboBox" name="comboBox_pairty">
+        <item>
+         <property name="text">
+          <string>无校验</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>奇校验</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>偶校验</string>
+         </property>
+        </item>
+       </widget>
       </item>
       <item row="2" column="0">
        <widget class="QLabel" name="label_12">
@@ -123,7 +139,23 @@
        </widget>
       </item>
       <item row="2" column="1">
-       <widget class="QComboBox" name="comboBox_2"/>
+       <widget class="QComboBox" name="comboBox_stopbit">
+        <item>
+         <property name="text">
+          <string>1</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>1.5</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>2</string>
+         </property>
+        </item>
+       </widget>
       </item>
       <item row="3" column="0">
        <widget class="QLabel" name="label_13">
@@ -133,7 +165,18 @@
        </widget>
       </item>
       <item row="3" column="1">
-       <widget class="QComboBox" name="comboBox_4"/>
+       <widget class="QComboBox" name="comboBox_databit">
+        <item>
+         <property name="text">
+          <string>7</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>8</string>
+         </property>
+        </item>
+       </widget>
       </item>
       <item row="4" column="0">
        <widget class="QLabel" name="label_14">
@@ -143,10 +186,10 @@
        </widget>
       </item>
       <item row="4" column="1">
-       <widget class="QLineEdit" name="lineEdit_8"/>
+       <widget class="QLineEdit" name="lineEdit_cycleLen"/>
       </item>
       <item row="5" column="1">
-       <widget class="QPushButton" name="pushButton_2">
+       <widget class="QPushButton" name="pushButton_serialport">
         <property name="text">
          <string>配置生效</string>
         </property>
@@ -216,7 +259,7 @@
        </widget>
       </item>
       <item row="6" column="1">
-       <widget class="QPushButton" name="pushButton">
+       <widget class="QPushButton" name="pushButton_net">
         <property name="text">
          <string>配置生效</string>
         </property>

@@ -20,12 +20,53 @@ PollDeviceWidget::~PollDeviceWidget()
 void PollDeviceWidget::onRecvData(quint8 type, const QVariant &value)
 {
     if(0 == type){
+        //主机系统参数
+        auto pollSysParam = value.value<PollSysParam>();
+        ui->lineEdit_devId->setText(pollSysParam.devId);
+        ui->lineEdit_hardversion->setText(pollSysParam.hardVersion);
+        ui->lineEdit_softversion->setText(pollSysParam.softVersion);
+        ui->lineEdit_sysdatetime->setText(pollSysParam.sysDataTime);
 
     }else if(1 == type){
+        //主机网络参数
+        auto pollNetParam = value.value<PollNetParam>();
+        ui->lineEdit_localIp->setText(pollNetParam.localIP);
+        ui->lineEdit_remoteIp->setText(pollNetParam.remoteIP);
+        ui->lineEdit_getaway->setText(pollNetParam.gateWay);
+        ui->lineEdit_dns->setText(pollNetParam.dns);
+        ui->spinBox_localPort->setValue(pollNetParam.localPort);
+        ui->spinBox_remotePort->setValue(pollNetParam.remotePort);
 
     }else if(2 == type){
+        //主机串口参数
+        auto pollSerialPortParam = value.value<PollSerialPortParam>();
 
+        ui->comboBox_baud->setCurrentText(QString::number(pollSerialPortParam.baud));
+        auto stopbit = double((pollSerialPortParam.param >> 8) & 0xff)/10;
+        //停止位
+        ui->comboBox_stopbit->setCurrentText(QString::number(stopbit));
+        //校验位
+        auto parity = (pollSerialPortParam.param & 0xf);
+        ui->comboBox_pairty->setCurrentIndex(parity);
+        //数据位
+        auto databit = (pollSerialPortParam.param & 0xff) >> 4;
+         ui->comboBox_databit->setCurrentText(QString::number(databit));
     }
+}
+
+void PollDeviceWidget::on_pushButton_sysTime_clicked()
+{
+    //写入系统时间
+}
+
+void PollDeviceWidget::on_pushButton_net_clicked()
+{
+    //写入网络参数
+}
+
+void PollDeviceWidget::on_pushButton_serialport_clicked()
+{
+    //写入串口参数
 }
 
 void PollDeviceWidget::loadDevData()
