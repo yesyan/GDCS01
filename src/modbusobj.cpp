@@ -75,52 +75,32 @@ int ModBusObj::getConnectSlaveAddr()
     return -1;
 }
 
-int ModBusObj::getSlaveSimpleInfo(int slave, QVariantHash &value)
+bool ModBusObj::getSlaveSysParam(int slave, QVariantHash &value)
 {
     if(nullptr == m_modBusCtx)
-        return -1;
+        return false;
     auto ret = modbus_set_slave(m_modBusCtx,slave);
     if(ret == -1){
         qInfo() << QStringLiteral("设置分机地址失败.");
-        return ret;
+        return false;
     }
-
+    int readAddr = 100*slave + 0;
     QVector<uint16_t> tmpData;
-    tmpData.resize(29);
-    ret = modbus_read_input_registers(m_modBusCtx,300,29,tmpData.data());
+    tmpData.resize(4);
+    ret = modbus_read_input_registers(m_modBusCtx,readAddr,4,tmpData.data());
     if(ret == -1){
         qInfo() << QStringLiteral("读取分机(%1)系统参数失败.").arg(slave);
-        return ret;
+        return false;
     }
 
-    //设备id
-    //value.insert(DeviceID,devId);
-    //设备型号
-    QByteArray devType;
-    devType.resize(20);
-    memcpy(devType.data(),&tmpData[5],20);
-    value.insert(DeviceType,devType);
+    //硬件版本
+    value.insert(HardwareVersion,QString::number(tmpData[0]));
+    //软件版本
+    value.insert(SoftwareVersion,QString::number(tmpData[1]));
+    //设备ID信息
+    value.insert(DeviceID,QString::number(tmpData[2]) + QString::number(tmpData[3]));
 
-    //供电方式
-    switch (tmpData[27])
-    {
-    case 1:
-        value.insert(PowerMode,QStringLiteral("外部供电"));
-        break;
-    case 2:
-        value.insert(PowerMode,QStringLiteral("电池供电"));
-        break;
-    case 3:
-        value.insert(PowerMode,QStringLiteral("正在充电"));
-        break;
-    default:
-        value.insert(PowerMode,QStringLiteral("未知"));
-        break;
-    }
-
-    //电量
-    value.insert(ElectricQuantity,tmpData[28]);
-    return 0;
+    return true;
 }
 
 int ModBusObj::getSlaveDevParam(int slave, QVariantHash &value)
@@ -174,6 +154,21 @@ void ModBusObj::pollParam(quint8 opType, quint8 paramType, const QVariant &param
         writePollSerialPortParam(param);
 
     }
+}
+
+void ModBusObj::readSlaveParam(int slave, quint8 paramType)
+{
+    if(paramType == 3){
+        //从机系统参数
+        QVariantHash tValue;
+        if(getSlaveSysParam(slave,tValue))
+            emit signalSlaveParam(slave,3,tValue);
+    }
+}
+
+void ModBusObj::writeSlaveParam(int slave, quint8 paramType, const QVariant &param)
+{
+
 }
 
 int ModBusObj::stopConnect()
@@ -292,6 +287,25 @@ void ModBusObjInstance::pollParam(ModBusObjInstance::OperationType opType, ModBu
                               Q_ARG(const QVariant &,param));
 }
 
+void ModBusObjInstance::readSlaveParam(int slave, ModBusObjInstance::ParamType paramType)
+{
+    if(nullptr == m_modBusObj)
+        return;
+    QMetaObject::invokeMethod(m_modBusObj,"readSlaveParam",Qt::AutoConnection,
+                              Q_ARG(int, slave),Q_ARG(quint8, paramType));
+
+}
+
+void ModBusObjInstance::writeSlaveParam(int slave, ModBusObjInstance::ParamType paramType, const QVariant &value)
+{
+    if(nullptr == m_modBusObj)
+        return;
+    QMetaObject::invokeMethod(m_modBusObj,"writeSlaveParam",Qt::AutoConnection,
+                              Q_ARG(int, slave),Q_ARG(quint8, paramType),
+                              Q_ARG(const QVariant &,value));
+
+}
+
 ModBusObjInstance::ModBusObjInstance()
 {
     m_modBusObj = new ModBusObj;
@@ -301,6 +315,8 @@ ModBusObjInstance::ModBusObjInstance()
     //主机回传参数
     connect(m_modBusObj,&ModBusObj::signalPollParam,this,&ModBusObjInstance::signalPollParam);
     //分机回传参数
+    connect(m_modBusObj,&ModBusObj::signalSlaveParam,this,&ModBusObjInstance::signalSlaveParam);
+
     m_thread.start();
 }
 

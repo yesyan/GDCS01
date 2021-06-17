@@ -18,13 +18,12 @@ public:
     ~MainWindow();
 
 public slots:
-    void onSlaveSimpleInfo(const QVariantHash &value);
+    void onRecvSlaveParam(int slave,int type,const QVariant &value);
+
 private:
     void initUi();
     //检测分机状态
     void checkSlaveStatus();
-    //读取主机参数
-    void loadPollParam();
 
 private:
     Ui::MainWindow *ui;

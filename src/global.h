@@ -13,10 +13,6 @@ static const QString DeviceID = QStringLiteral("设备ID");
 
 static const QString DeviceType = QStringLiteral("设备型号");
 
-static const QString PowerMode  = QStringLiteral("供电方式");
-
-static const QString ElectricQuantity = QStringLiteral("电量");
-
 static const QString SysDateTime = QStringLiteral("系统时间");
 
 static const QString DevParam  = QStringLiteral("设备参数");
