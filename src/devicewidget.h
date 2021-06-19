@@ -16,13 +16,22 @@ public:
     ~DeviceWidget();
 
     void loadData(uint8_t slave);
+
+public slots:
+    void onRecvModBusValue(int slave,int addr,const QVector<quint16> &value);
+
+private slots:
+    void onWriteModBusRegister();
+
 signals:
     void signalBack();
 
 private:
     void initUi();
+
 private:
     Ui::DeviceWidget *ui;
+    quint8 m_slave;
 };
 
 #endif // DEVICEWIDGET_H

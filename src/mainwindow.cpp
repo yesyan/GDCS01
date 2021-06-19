@@ -14,7 +14,7 @@
 #include <QTextEdit>
 
 
-static const int SlaveCount = 32;
+static const int SlaveCount = 30;
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -54,7 +54,7 @@ void MainWindow::initUi()
     m_slaveTableWidget->setRowCount(SlaveCount);
     m_slaveTableWidget->setColumnCount(3);
     m_slaveTableWidget->setHorizontalHeaderLabels({DeviceID, HardwareVersion, SoftwareVersion});
-    //m_slaveTableWidget->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    m_slaveTableWidget->setEditTriggers(QAbstractItemView::NoEditTriggers);
     m_slaveTableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
 
     for(auto row = 0;row < SlaveCount; ++row){
@@ -65,15 +65,20 @@ void MainWindow::initUi()
 
     layout->addWidget(m_slaveTableWidget);
 
-    m_devWid = new DeviceWidget;
-    layout->addWidget(m_devWid);
-    connect(m_devWid,&DeviceWidget::signalBack,this,[=](){
-        layout->setCurrentIndex(0);
-    });
+
     ui->tab_2->setLayout(layout);
 
     connect(m_slaveTableWidget,&QTableWidget::doubleClicked,this,[=](const QModelIndex &index){
         auto row = index.row();
+        m_devWid = new DeviceWidget;
+
+        connect(m_devWid,&DeviceWidget::signalBack,this,[=](){
+            layout->setCurrentIndex(0);
+            layout->removeWidget(m_devWid);
+            m_devWid->deleteLater();
+            m_devWid = nullptr;
+        });
+        layout->addWidget(m_devWid);
         m_devWid->loadData(row);
         layout->setCurrentIndex(1);
     });
@@ -86,7 +91,7 @@ void MainWindow::initUi()
 
 void MainWindow::checkSlaveStatus()
 {
-    for(auto slave = 0 ; slave < SlaveCount ; ++slave){
+    for(auto slave = 1 ; slave < SlaveCount+1 ; ++slave){
         ModBusObjInstance::getInstance()->readSlaveParam(slave,ModBusObjInstance::SlaveSysParam);
     }
 }

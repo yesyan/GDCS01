@@ -19,6 +19,8 @@ signals:
     void signalPollParam(quint8 paramType, const QVariant &);
     void signalSlaveParam(int slave,int type,const QVariant &);
 
+    void signalReadValue(int slave,int addr,const QVector<quint16> &);
+
 public slots:
     //网络连接
     int netWorkConnect(const QString &ip,int port);
@@ -32,10 +34,15 @@ public slots:
 
     //操作主机参数
     void pollParam(quint8 opType, quint8 paramType,const QVariant &param);
-    //读取从机参数
+    //读取从机系统参数
     void readSlaveParam(int slave, quint8 paramType);
-    //写入从机参数
-    void writeSlaveParam(int slave, quint8 paramType, const QVariant &param);
+
+    //根据地址读取数据
+    void readModBusRegister(int slave,int addr,int readCount,bool readOnly = false);
+    //根据地址写入数据
+    void writeModBusRegister(int slave,int addr,const QVector<quint16> &value);
+
+
 
 private:
     int stopConnect();
@@ -70,7 +77,8 @@ public:
     //操作方式，读取或者写入
     enum OperationType{
         READ  = 0,
-        WRITE = 1
+        WRITE = 1,
+        ONLYREAD
     };
 
     enum ParamType{
@@ -83,10 +91,13 @@ public:
 public:
     //主机参数
     void pollParam(OperationType opType,ParamType paramType,const QVariant &param);
-    //读取从机参数
+    //读取从机系统参数
     void readSlaveParam(int slave,ParamType paramType);
-    //写入从机参数
-    void writeSlaveParam(int slave, ParamType paramType, const QVariant &value);
+
+    //根据地址读取数据
+    void readModBusRegister(int slave,int addr,int readCount,bool readOnly = false);
+    //根据地址写入数据
+    void writeModBusRegister(int slave,int addr,const QVector<quint16> &value);
 
 signals:
     //读取到主机数据
@@ -94,6 +105,8 @@ signals:
     //读取到分机数据
     void signalSlaveParam(int slave,int type,const QVariant &);
 
+    //读取的数据
+    void signalReadValue(int slave,int addr,const QVector<quint16> &);
 private:
     ModBusObjInstance();
     ~ModBusObjInstance();

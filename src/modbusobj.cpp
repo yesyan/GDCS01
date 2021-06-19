@@ -166,9 +166,53 @@ void ModBusObj::readSlaveParam(int slave, quint8 paramType)
     }
 }
 
-void ModBusObj::writeSlaveParam(int slave, quint8 paramType, const QVariant &param)
+void ModBusObj::readModBusRegister(int slave, int addr, int readCount, bool readOnly)
 {
+    if(nullptr == m_modBusCtx)
+        return;
+    if(slave > 0){
+        auto ret = modbus_set_slave(m_modBusCtx,slave);
+        if(ret == -1){
+            qInfo() << QStringLiteral("设置分机地址失败.");
+            return;
+        }
+    }
+    QVector<quint16> tmpData;
+    tmpData.resize(readCount);
 
+    if(readOnly){
+        auto ret = modbus_read_input_registers(m_modBusCtx, slave*100+addr, readCount, tmpData.data());
+        if(ret == -1){
+            qInfo() << QStringLiteral("读取分机(%1)参数失败.").arg(slave);
+            return;
+        }
+    }else{
+        auto ret = modbus_read_registers(m_modBusCtx, slave*100+addr, readCount, tmpData.data());
+        if(ret == -1){
+            qInfo() << QStringLiteral("读取分机(%1)参数失败.").arg(slave);
+            return;
+        }
+    }
+
+    emit signalReadValue(slave,addr,tmpData);
+}
+
+void ModBusObj::writeModBusRegister(int slave, int addr, const QVector<quint16> &value)
+{
+    if(nullptr == m_modBusCtx)
+        return;
+    if(slave > 0){
+        auto ret = modbus_set_slave(m_modBusCtx,slave);
+        if(ret == -1){
+            qInfo() << QStringLiteral("设置分机地址失败.");
+            return;
+        }
+    }
+
+    auto ret = modbus_write_registers(m_modBusCtx,slave*100+addr,value.size(),value.data());
+    if(ret == -1){
+        qInfo() << QStringLiteral("写入分机(%1)参数失败.").arg(slave);
+    }
 }
 
 int ModBusObj::stopConnect()
@@ -238,7 +282,7 @@ void ModBusObj::readPollNetParam()
     emit signalPollParam(1,QVariant::fromValue(pollNetParam));
 }
 
-void ModBusObj::writePollNetParam(const QVariant &value)
+void ModBusObj::writePollNetParam(const QVariant &)
 {
 }
 
@@ -263,7 +307,7 @@ void ModBusObj::readPollSerialPortParam()
 
 }
 
-void ModBusObj::writePollSerialPortParam(const QVariant &value)
+void ModBusObj::writePollSerialPortParam(const QVariant &)
 {
 
 }
@@ -296,13 +340,22 @@ void ModBusObjInstance::readSlaveParam(int slave, ModBusObjInstance::ParamType p
 
 }
 
-void ModBusObjInstance::writeSlaveParam(int slave, ModBusObjInstance::ParamType paramType, const QVariant &value)
+void ModBusObjInstance::readModBusRegister(int slave, int addr, int readCount, bool readOnly)
 {
     if(nullptr == m_modBusObj)
         return;
-    QMetaObject::invokeMethod(m_modBusObj,"writeSlaveParam",Qt::AutoConnection,
-                              Q_ARG(int, slave),Q_ARG(quint8, paramType),
-                              Q_ARG(const QVariant &,value));
+    QMetaObject::invokeMethod(m_modBusObj,"readModBusRegister",Qt::AutoConnection,
+                              Q_ARG(int, slave),Q_ARG(int, addr),Q_ARG(int, readCount),
+                              Q_ARG(bool,readOnly));
+}
+
+void ModBusObjInstance::writeModBusRegister(int slave, int addr, const QVector<quint16> &value)
+{
+    if(nullptr == m_modBusObj)
+        return;
+    QMetaObject::invokeMethod(m_modBusObj,"writeModBusRegister",Qt::AutoConnection,
+                              Q_ARG(int, slave),Q_ARG(int, addr),
+                              Q_ARG(const QVector<quint16> &,value));
 
 }
 
@@ -316,6 +369,8 @@ ModBusObjInstance::ModBusObjInstance()
     connect(m_modBusObj,&ModBusObj::signalPollParam,this,&ModBusObjInstance::signalPollParam);
     //分机回传参数
     connect(m_modBusObj,&ModBusObj::signalSlaveParam,this,&ModBusObjInstance::signalSlaveParam);
+    //读取的值
+    connect(m_modBusObj,&ModBusObj::signalReadValue,this,&ModBusObjInstance::signalReadValue);
 
     m_thread.start();
 }
