@@ -78,7 +78,25 @@
       </widget>
      </item>
      <item>
-      <widget class="QLineEdit" name="lineEdit_sysdatetime"/>
+      <widget class="QSpinBox" name="spinBox_systime1">
+       <property name="maximum">
+        <number>9999</number>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QSpinBox" name="spinBox_systime2">
+       <property name="maximum">
+        <number>9999</number>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QSpinBox" name="spinBox_systime3">
+       <property name="maximum">
+        <number>9999</number>
+       </property>
+      </widget>
      </item>
      <item>
       <widget class="QPushButton" name="pushButton_sysTime">
@@ -147,11 +165,6 @@
         </item>
         <item>
          <property name="text">
-          <string>1.5</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
           <string>2</string>
          </property>
         </item>
@@ -190,6 +203,12 @@
       </item>
       <item row="5" column="1">
        <widget class="QPushButton" name="pushButton_serialport">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
         <property name="text">
          <string>配置生效</string>
         </property>
@@ -258,18 +277,24 @@
         </property>
        </widget>
       </item>
-      <item row="6" column="1">
-       <widget class="QPushButton" name="pushButton_net">
-        <property name="text">
-         <string>配置生效</string>
-        </property>
-       </widget>
-      </item>
       <item row="4" column="1">
        <widget class="QSpinBox" name="spinBox_localPort"/>
       </item>
       <item row="5" column="1">
        <widget class="QSpinBox" name="spinBox_remotePort"/>
+      </item>
+      <item row="6" column="1">
+       <widget class="QPushButton" name="pushButton_net">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="text">
+         <string>配置生效</string>
+        </property>
+       </widget>
       </item>
      </layout>
     </widget>

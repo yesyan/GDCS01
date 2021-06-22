@@ -103,39 +103,27 @@ bool ModBusObj::getSlaveSysParam(int slave, QVariantHash &value)
     return true;
 }
 
-int ModBusObj::getSlaveDevParam(int slave, QVariantHash &value)
-{
-    if(nullptr == m_modBusCtx)
-        return -1;
-
-    auto ret = modbus_set_slave(m_modBusCtx,slave);
-    if(ret == -1){
-        qInfo() << QStringLiteral("设置分机地址失败.");
-        return ret;
-    }
-
-    //系统时间
-    QVector<uint16_t> tmpData;
-    tmpData.resize(3);
-    ret = modbus_read_registers(m_modBusCtx, 185, 3, tmpData.data());
-    if(ret == -1){
-        qInfo() << QStringLiteral("获取系统时间失败.");
-        return ret;
-    }
-    value.insert(SysDateTime,QString("20%1-%2-%3 %4:%5:%6").arg(tmpData[0]>>8).arg(tmpData[0]&0x00ff).arg(tmpData[1]>>8)
-                                      .arg(tmpData[1]&0x00ff).arg(tmpData[2]>>8).arg(tmpData[2]&0x00ff));
-
-    //设备参数
-    tmpData.fill(0,11);
-    ret = modbus_read_registers(m_modBusCtx, 128, 11, tmpData.data());
-
-    return 0;
-}
-
 void ModBusObj::pollParam(quint8 opType, quint8 paramType, const QVariant &param)
 {
     if(0 == opType && 0 == paramType){
+        //读取主机系统参数
         readPollSysParam();
+
+    }else if(1 == opType && 0 == paramType){
+        //写入系统时间
+        auto sysParam = param.value<PollSysParam>();
+        QVector<uint16_t> tmpData;
+        tmpData.append(sysParam.sysDataTime1);
+        tmpData.append(sysParam.sysDataTime2);
+        tmpData.append(sysParam.sysDataTime3);
+
+        auto ret = modbus_write_registers(m_modBusCtx,20,3,tmpData.data());
+        if(ret == -1){
+            qInfo() << QStringLiteral("写入系统时间失败.");
+        }
+        //配置生效
+        uint16_t tValue = 1;
+        modbus_write_registers(m_modBusCtx,19,1,&tValue);
 
     }else if(0 == opType && 1 == paramType){
         //读取主机网路参数
@@ -212,7 +200,12 @@ void ModBusObj::writeModBusRegister(int slave, int addr, const QVector<quint16> 
     auto ret = modbus_write_registers(m_modBusCtx,slave*100+addr,value.size(),value.data());
     if(ret == -1){
         qInfo() << QStringLiteral("写入分机(%1)参数失败.").arg(slave);
+        return;
     }
+    //配置生效
+    uint16_t tValue = 1;
+    modbus_write_registers(m_modBusCtx,slave*100+0,1,&tValue);
+
 }
 
 int ModBusObj::stopConnect()
@@ -238,9 +231,9 @@ void ModBusObj::readPollSysParam()
     devId |= (tmpData[3] & 0xff);
 
     PollSysParam sysParam;
-    sysParam.hardVersion = tmpData[0];
-    sysParam.softVersion = tmpData[1];
-    sysParam.devId = devId;
+    sysParam.hardVersion = QString::number(tmpData[0]);
+    sysParam.softVersion = QString::number(tmpData[1]);
+    sysParam.devId = QString::number(devId);
 
     tmpData.fill(0);
     ret = modbus_read_input_registers(m_modBusCtx,20,3,tmpData.data());
@@ -248,9 +241,9 @@ void ModBusObj::readPollSysParam()
         qInfo() << QStringLiteral("读取系统时间失败.");
         return;
     }
-    sysParam.sysDataTime = QStringLiteral("%1年%2月%3日%4时%5分%6秒").arg(tmpData[0]>>8 & 0xff).arg(tmpData[0] & 0xff)\
-                                                                   .arg(tmpData[1]>>8 & 0xff).arg(tmpData[1] & 0xff)\
-                                                                   .arg(tmpData[2]>>8 & 0xff).arg(tmpData[2] & 0xff);
+    sysParam.sysDataTime1 = tmpData[0];
+    sysParam.sysDataTime2 = tmpData[1];
+    sysParam.sysDataTime2 = tmpData[2];
 
     emit signalPollParam(0,QVariant::fromValue(sysParam));
 }
@@ -282,8 +275,49 @@ void ModBusObj::readPollNetParam()
     emit signalPollParam(1,QVariant::fromValue(pollNetParam));
 }
 
-void ModBusObj::writePollNetParam(const QVariant &)
+void ModBusObj::writePollNetParam(const QVariant &param)
 {
+    auto netParam = param.value<PollNetParam>();
+    QVector<uint16_t> tmpData;
+    //本地ip
+    auto localIp = netParam.localIP.split('.');
+    for(auto item : localIp){
+        tmpData.append(item.toUShort());
+    }
+    //网关
+    auto gateWay = netParam.gateWay.split('.');
+    for(auto item : gateWay){
+        tmpData.append(item.toUShort());
+    }
+    //DNS
+    auto dns = netParam.dns.split('.');
+    for(auto item : dns){
+        tmpData.append(item.toUShort());
+    }
+    //本地端口
+    tmpData.append(netParam.localPort);
+    auto ret = modbus_write_registers(m_modBusCtx,0,10,tmpData.data());
+    if(ret == -1){
+        qInfo() << QStringLiteral("写入主机网络参数失败.");
+    }
+
+    QVector<uint16_t> tmpDataNext;
+    //远端ip
+    auto remoteIp= netParam.remoteIP.split('.');
+    for(auto item : remoteIp){
+        tmpDataNext.append(item.toUShort());
+    }
+    //远端端口
+    tmpDataNext.append(netParam.remotePort);
+    ret = modbus_write_registers(m_modBusCtx,26,5,tmpDataNext.data());
+    if(ret == -1){
+        qInfo() << QStringLiteral("写入主机网络参数失败.");
+    }
+
+    //配置生效
+    uint16_t tValue = 1;
+    modbus_write_registers(m_modBusCtx,19,1,&tValue);
+
 }
 
 void ModBusObj::readPollSerialPortParam()
@@ -299,7 +333,7 @@ void ModBusObj::readPollSerialPortParam()
     auto baud = (tmpData[0] << 16) & 0xff;
     baud |= (tmpData[1] & 0xff);
 
-    pollSpParam.baud = baud;
+    pollSpParam.baud = quint32(baud);
     pollSpParam.param = tmpData[2];
     pollSpParam.cycleSize = tmpData[3];
 
@@ -307,8 +341,23 @@ void ModBusObj::readPollSerialPortParam()
 
 }
 
-void ModBusObj::writePollSerialPortParam(const QVariant &)
+void ModBusObj::writePollSerialPortParam(const QVariant &param)
 {
+
+    auto spParam = param.value<PollSerialPortParam>();
+    QVector<uint16_t> tmpData;
+    tmpData.append((spParam.baud >> 8)&0xff);
+    tmpData.append(spParam.baud & 0xff);
+    tmpData.append(spParam.param);
+    tmpData.append(spParam.cycleSize);
+
+    auto ret = modbus_write_registers(m_modBusCtx,13,4,tmpData.data());
+    if(ret == -1){
+        qInfo() << QStringLiteral("写入主机串口参数失败.");
+    }
+    //配置生效
+    uint16_t tValue = 1;
+    modbus_write_registers(m_modBusCtx,19,1,&tValue);
 
 }
 

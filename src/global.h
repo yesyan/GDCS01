@@ -25,7 +25,9 @@ public:
     QString devId;
     QString softVersion;
     QString hardVersion;
-    QString sysDataTime;
+    quint16 sysDataTime1;
+    quint16 sysDataTime2;
+    quint16 sysDataTime3;
 };
 Q_DECLARE_METATYPE(PollSysParam);
 
@@ -48,7 +50,7 @@ Q_DECLARE_METATYPE(PollNetParam);
 struct PollSerialPortParam{
 
 public:
-    quint16 baud;
+    quint32 baud;
     quint16 cycleSize;//轮询设备长度
     quint16  param;
 };

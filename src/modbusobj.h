@@ -29,8 +29,6 @@ public slots:
 
     //当前连接分机地址
     int getConnectSlaveAddr();
-    //获取分机设备参数
-    int getSlaveDevParam(int slave,QVariantHash &value);
 
     //操作主机参数
     void pollParam(quint8 opType, quint8 paramType,const QVariant &param);

@@ -16,7 +16,7 @@ public:
     ~PollDeviceWidget();
 
 public slots:
-    void onRecvData(quint8 type,const QVariant &);
+    void onRecvData(quint8 type, const QVariant &value);
     void on_pushButton_sysTime_clicked();
     void on_pushButton_net_clicked();
     void on_pushButton_serialport_clicked();
