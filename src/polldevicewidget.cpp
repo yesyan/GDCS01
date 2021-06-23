@@ -45,7 +45,7 @@ void PollDeviceWidget::onRecvData(quint8 type,const QVariant &value)
         auto pollSerialPortParam = value.value<PollSerialPortParam>();
 
         ui->comboBox_baud->setCurrentText(QString::number(pollSerialPortParam.baud));
-        auto stopbit = double((pollSerialPortParam.param >> 8) & 0xff)/10;
+        auto stopbit = int((pollSerialPortParam.param >> 8) & 0xff)/10;
         //停止位
         ui->comboBox_stopbit->setCurrentText(QString::number(stopbit));
         //校验位
@@ -53,7 +53,10 @@ void PollDeviceWidget::onRecvData(quint8 type,const QVariant &value)
         ui->comboBox_pairty->setCurrentIndex(parity);
         //数据位
         auto databit = (pollSerialPortParam.param & 0xff) >> 4;
-         ui->comboBox_databit->setCurrentText(QString::number(databit));
+        ui->comboBox_databit->setCurrentText(QString::number(databit));
+
+       //轮询设备长度
+       ui->spinBox_cycleSize->setValue(pollSerialPortParam.cycleSize);
     }
 }
 
@@ -70,12 +73,53 @@ void PollDeviceWidget::on_pushButton_sysTime_clicked()
 
 void PollDeviceWidget::on_pushButton_net_clicked()
 {
-    //TODO 写入网络参数
+    //写入网络参数
+    PollNetParam netParam;
+    netParam.localIP = ui->lineEdit_localIp->text();
+    netParam.gateWay = ui->lineEdit_getaway->text();
+    netParam.dns = ui->lineEdit_dns->text();
+    netParam.localPort = ui->spinBox_localPort->value();
+    netParam.remoteIP = ui->lineEdit_remoteIp->text();
+    netParam.remotePort = ui->spinBox_remotePort->value();
+
+    ModBusObjInstance::getInstance()->pollParam(ModBusObjInstance::WRITE, ModBusObjInstance::PollNetParam, QVariant::fromValue(netParam));
+
 }
 
 void PollDeviceWidget::on_pushButton_serialport_clicked()
 {
-    //TODO 写入串口参数
+    //写入串口参数
+    PollSerialPortParam sparam;
+    sparam.baud = ui->comboBox_baud->currentText().toInt();
+    sparam.cycleSize = ui->spinBox_cycleSize->value();
+    quint16 tParam = 0;
+    auto stopBit = ui->comboBox_stopbit->currentText().toInt();
+    tParam  |= ((stopBit*10) & 0xff) << 8;
+
+    auto databit = ui->comboBox_databit->currentText().toInt();
+    tParam |= (databit & 0xf) << 4;
+
+    auto parity = ui->comboBox_pairty->currentText().toInt();
+    tParam |= (parity & 0xf);
+
+    sparam.param = tParam;
+
+    ModBusObjInstance::getInstance()->pollParam(ModBusObjInstance::WRITE, ModBusObjInstance::PollSpParam, QVariant::fromValue(sparam));
+}
+
+void PollDeviceWidget::on_pushButton_sysparam_clicked()
+{
+    ModBusObjInstance::getInstance()->pollParam(ModBusObjInstance::READ,ModBusObjInstance::PollSysParam,QVariant());
+}
+
+void PollDeviceWidget::on_pushButton_netparam_clicked()
+{
+    ModBusObjInstance::getInstance()->pollParam(ModBusObjInstance::READ,ModBusObjInstance::PollNetParam,QVariant());
+}
+
+void PollDeviceWidget::on_pushButton_sparam_clicked()
+{
+    ModBusObjInstance::getInstance()->pollParam(ModBusObjInstance::READ,ModBusObjInstance::PollSpParam,QVariant());
 }
 
 void PollDeviceWidget::loadDevData()

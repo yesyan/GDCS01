@@ -21,6 +21,11 @@ public slots:
     void on_pushButton_net_clicked();
     void on_pushButton_serialport_clicked();
 
+    //获取参数
+    void on_pushButton_sysparam_clicked();
+    void on_pushButton_netparam_clicked();
+    void on_pushButton_sparam_clicked();
+
 private:
     //加载设备数据
     void loadDevData();

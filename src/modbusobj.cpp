@@ -28,7 +28,13 @@ int ModBusObj::netWorkConnect(const QString &ip, int port)
 
     auto ret = modbus_connect(m_modBusCtx);
     if(ret == -1){
-        qInfo() << QStringLiteral("连接分机失败.");
+        qInfo() << QStringLiteral("网络连接失败.");
+        return ret;
+    }
+
+    ret = modbus_set_slave(m_modBusCtx,1);
+    if(ret == -1){
+        qInfo() << QStringLiteral("设置分机ID失败.");
         return ret;
     }
     //响应超时时间为1000毫秒
@@ -58,6 +64,11 @@ int ModBusObj::serialPortConnect(const QString &dev, int baud, char parity, int 
         return ret;
     }
 
+    ret = modbus_set_slave(m_modBusCtx,1);
+    if(ret == -1){
+        qInfo() << QStringLiteral("设置分机ID失败.");
+        return ret;
+    }
     //响应超时时间为1000毫秒
     ret = modbus_set_response_timeout(m_modBusCtx,1,0);
     if(ret == -1){
@@ -79,15 +90,11 @@ bool ModBusObj::getSlaveSysParam(int slave, QVariantHash &value)
 {
     if(nullptr == m_modBusCtx)
         return false;
-    auto ret = modbus_set_slave(m_modBusCtx,slave);
-    if(ret == -1){
-        qInfo() << QStringLiteral("设置分机地址失败.");
-        return false;
-    }
+
     int readAddr = 100*slave + 0;
     QVector<uint16_t> tmpData;
     tmpData.resize(4);
-    ret = modbus_read_input_registers(m_modBusCtx,readAddr,4,tmpData.data());
+    auto ret = modbus_read_input_registers(m_modBusCtx,readAddr,4,tmpData.data());
     if(ret == -1){
         qInfo() << QStringLiteral("读取分机(%1)系统参数失败.").arg(slave);
         return false;
@@ -158,13 +165,7 @@ void ModBusObj::readModBusRegister(int slave, int addr, int readCount, bool read
 {
     if(nullptr == m_modBusCtx)
         return;
-    if(slave > 0){
-        auto ret = modbus_set_slave(m_modBusCtx,slave);
-        if(ret == -1){
-            qInfo() << QStringLiteral("设置分机地址失败.");
-            return;
-        }
-    }
+
     QVector<quint16> tmpData;
     tmpData.resize(readCount);
 
@@ -189,13 +190,6 @@ void ModBusObj::writeModBusRegister(int slave, int addr, const QVector<quint16> 
 {
     if(nullptr == m_modBusCtx)
         return;
-    if(slave > 0){
-        auto ret = modbus_set_slave(m_modBusCtx,slave);
-        if(ret == -1){
-            qInfo() << QStringLiteral("设置分机地址失败.");
-            return;
-        }
-    }
 
     auto ret = modbus_write_registers(m_modBusCtx,slave*100+addr,value.size(),value.data());
     if(ret == -1){
@@ -239,7 +233,6 @@ void ModBusObj::readPollSysParam()
     ret = modbus_read_input_registers(m_modBusCtx,20,3,tmpData.data());
     if(ret == -1){
         qInfo() << QStringLiteral("读取系统时间失败.");
-        return;
     }
     sysParam.sysDataTime1 = tmpData[0];
     sysParam.sysDataTime2 = tmpData[1];
