@@ -18,7 +18,7 @@ public:
     void loadData(uint8_t slave);
 
 public slots:
-    void onRecvModBusValue(int slave,int addr,const QVector<quint16> &value);
+    void onRecvModBusValue(int slave, int addr, const QByteArray &value);
 
 private slots:
     void onWriteModBusRegister();

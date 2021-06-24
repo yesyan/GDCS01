@@ -26,38 +26,43 @@ void DeviceWidget::loadData(uint8_t slave)
     m_slave = slave;
 }
 
-void DeviceWidget::onRecvModBusValue(int slave, int addr, const QVector<quint16> &value)
+void DeviceWidget::onRecvModBusValue(int slave, int addr, const QByteArray &value)
 {
-    if(slave == m_slave && addr == 1 && value.size() == 35){
+    if(slave == m_slave && addr == 1 && value.size() == 35*sizeof (quint16)){
+
+
+        QVector<quint16> tValue;
+        tValue.resize(35);
+        memcpy(tValue.data(),value.data(),value.size());
 
         //信道
-        ui->spinBox_2->setValue(value[2]);
+        ui->spinBox_2->setValue(tValue[2]);
         //采样率
-        ui->spinBox_3->setValue(value[3]);
+        ui->spinBox_3->setValue(tValue[3]);
         //空中速率
-        ui->spinBox_5->setValue(value[5]);
+        ui->spinBox_5->setValue(tValue[5]);
         //远端通讯格式
-        ui->comboBox_6->setCurrentIndex(value[6]);
+        ui->comboBox_6->setCurrentIndex(tValue[6]);
         //RS485波特率
-        int baud = (value[7] << 8) | value[8];
-        ui->lineEdit_7->setText(QString::number(baud));
+        int baud = (tValue[7] << 16) | tValue[8];
+        ui->spinBox_7->setValue(baud);
         //校验位
-        ui->comboBox_9_1->setCurrentIndex(value[9] & 0xf);
+        ui->comboBox_9_1->setCurrentIndex(tValue[9] & 0xf);
         //数据位
-        ui->comboBox_9_2->setCurrentText(QString::number((value[9] >> 4) & 0xf));
+        ui->comboBox_9_3->setCurrentText(QString::number((tValue[9] >> 4) & 0xf));
         //停止位
-        ui->comboBox_9_2->setCurrentText(QString::number(((value[9] >> 8) & 0xff)/10));
+        ui->comboBox_9_2->setCurrentText(QString::number(((tValue[9] >> 8) & 0xff)/10));
 
         //x方向
-        ui->spinBox_11->setValue(value[11]);
-        ui->spinBox_12->setValue(value[12]);
-        ui->spinBox_13->setValue(value[13]);
+        ui->spinBox_11->setValue(tValue[11]);
+        ui->spinBox_12->setValue(tValue[12]);
+        ui->spinBox_13->setValue(tValue[13]);
         //y方向
-        ui->spinBox_14->setValue(value[14]);
-        ui->spinBox_15->setValue(value[15]);
-        ui->spinBox_16->setValue(value[16]);
+        ui->spinBox_14->setValue(tValue[14]);
+        ui->spinBox_15->setValue(tValue[15]);
+        ui->spinBox_16->setValue(tValue[16]);
         //y方向
-        ui->spinBox_17->setValue(value[17]);
+        ui->spinBox_17->setValue(tValue[17]);
         ui->spinBox_18->setValue(value[18]);
         ui->spinBox_19->setValue(value[19]);
         //温度报警预警值
@@ -107,11 +112,11 @@ void DeviceWidget::initUi()
           //远端数据通讯格式
           tmpData.append(quint16(ui->comboBox_6->currentIndex()));
           //RS485波特率
-          tmpData.append(quint16(ui->lineEdit_7->text().toInt() >> 8));
-          tmpData.append(quint16(ui->lineEdit_7->text().toInt() & 0xff));
+          tmpData.append((ui->spinBox_7->value() >> 16) & 0xffff);
+          tmpData.append(ui->spinBox_7->value() & 0xffff);
           //奇偶、停止、数据位
           quint16 tValue = quint16(ui->comboBox_9_1->currentIndex());
-          tValue |= ui->comboBox_9_2->currentText().toInt() << 4;
+          tValue |= ui->comboBox_9_3->currentText().toInt() << 4;
           tValue |= ui->comboBox_9_2->currentText().toInt()*10 << 8;
           tmpData.append(tValue);
 
@@ -156,7 +161,7 @@ void DeviceWidget::initUi()
     connect(ui->pushButton_23,&QPushButton::clicked,this,&DeviceWidget::onWriteModBusRegister);
     //信道
     connect(ui->pushButton_2,&QPushButton::clicked,this,&DeviceWidget::onWriteModBusRegister);
-    connect(ui->pushButton_22,&QPushButton::clicked,this,&DeviceWidget::onWriteModBusRegister);
+    connect(ui->pushButton_31,&QPushButton::clicked,this,&DeviceWidget::onWriteModBusRegister);
     connect(ui->pushButton_5,&QPushButton::clicked,this,&DeviceWidget::onWriteModBusRegister);
 
 }

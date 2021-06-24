@@ -37,13 +37,13 @@ MainWindow::~MainWindow()
 
 void MainWindow::onRecvSlaveParam(int slave, int type, const QVariant &value)
 {
-    if(type == ModBusObjInstance::SlaveSysParam){
+    if(type == ModBusObjInstance::SlaveSysParam && slave >=1){
         auto devId = value.toHash()[DeviceID].toString();
         auto hardVersion = value.toHash()[HardwareVersion].toString();
         auto softVersion = value.toHash()[SoftwareVersion].toString();
-        m_slaveTableWidget->item(slave,0)->setText(devId);
-        m_slaveTableWidget->item(slave,1)->setText(hardVersion);
-        m_slaveTableWidget->item(slave,2)->setText(softVersion);
+        m_slaveTableWidget->item(slave-1,0)->setText(devId);
+        m_slaveTableWidget->item(slave-1,1)->setText(hardVersion);
+        m_slaveTableWidget->item(slave-1,2)->setText(softVersion);
     }
 }
 
@@ -79,7 +79,7 @@ void MainWindow::initUi()
             m_devWid = nullptr;
         });
         layout->addWidget(m_devWid);
-        m_devWid->loadData(row);
+        m_devWid->loadData(row+1);
         layout->setCurrentIndex(1);
     });
 

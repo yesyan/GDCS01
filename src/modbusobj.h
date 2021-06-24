@@ -19,7 +19,7 @@ signals:
     void signalPollParam(quint8 paramType, const QVariant &);
     void signalSlaveParam(int slave,int type,const QVariant &);
 
-    void signalReadValue(int slave,int addr,const QVector<quint16> &);
+    void signalReadValue(int slave,int addr,const QByteArray &);
 
 public slots:
     //网络连接
@@ -104,7 +104,7 @@ signals:
     void signalSlaveParam(int slave,int type,const QVariant &);
 
     //读取的数据
-    void signalReadValue(int slave,int addr,const QVector<quint16> &);
+    void signalReadValue(int slave,int addr,const QByteArray &);
 private:
     ModBusObjInstance();
     ~ModBusObjInstance();

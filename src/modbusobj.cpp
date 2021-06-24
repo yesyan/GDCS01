@@ -3,7 +3,6 @@
 #include "global.h"
 
 #include <QDebug>
-
 ModBusObj::ModBusObj(QObject *parent)
           :QObject(parent)
 {
@@ -182,8 +181,11 @@ void ModBusObj::readModBusRegister(int slave, int addr, int readCount, bool read
             return;
         }
     }
+    QByteArray byteData;
+    byteData.resize(readCount * sizeof (quint16));
+    memcpy(byteData.data(),tmpData.data(),readCount * sizeof (quint16));
 
-    emit signalReadValue(slave,addr,tmpData);
+    emit signalReadValue(slave,addr, byteData);
 }
 
 void ModBusObj::writeModBusRegister(int slave, int addr, const QVector<quint16> &value)
@@ -289,7 +291,7 @@ void ModBusObj::writePollNetParam(const QVariant &param)
     }
     //本地端口
     tmpData.append(netParam.localPort);
-    auto ret = modbus_write_registers(m_modBusCtx,0,10,tmpData.data());
+    auto ret = modbus_write_registers(m_modBusCtx,0,13,tmpData.data());
     if(ret == -1){
         qInfo() << QStringLiteral("写入主机网络参数失败.");
     }
@@ -323,8 +325,8 @@ void ModBusObj::readPollSerialPortParam()
         qInfo() << QStringLiteral("读取主机网络参数失败.");
     }
     PollSerialPortParam pollSpParam;
-    auto baud = (tmpData[0] << 16) & 0xff;
-    baud |= (tmpData[1] & 0xff);
+    auto baud = (tmpData[0] << 16);
+    baud |= (tmpData[1] & 0xffff);
 
     pollSpParam.baud = quint32(baud);
     pollSpParam.param = tmpData[2];
@@ -339,8 +341,8 @@ void ModBusObj::writePollSerialPortParam(const QVariant &param)
 
     auto spParam = param.value<PollSerialPortParam>();
     QVector<uint16_t> tmpData;
-    tmpData.append((spParam.baud >> 8)&0xff);
-    tmpData.append(spParam.baud & 0xff);
+    tmpData.append((spParam.baud >> 16) & 0xffff);
+    tmpData.append(spParam.baud & 0xffff);
     tmpData.append(spParam.param);
     tmpData.append(spParam.cycleSize);
 

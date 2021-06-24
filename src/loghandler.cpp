@@ -201,8 +201,8 @@ void LogHandlerPrivate::messageHandler(QtMsgType type, const QMessageLogContext 
     }
     // 输出给日志面板
     QString t_str = QString("%1 - [%2] ").arg(QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss")).arg(level) + msg + "\n";
-    LogHandlerPrivate::textEdit->append(t_str);
-    //LogHandlerPrivate::textEdit->moveCursor(QTextCursor::End);
+    //LogHandlerPrivate::textEdit->append(t_str);
+    QMetaObject::invokeMethod(LogHandlerPrivate::textEdit,"append",Q_ARG(const QString &,t_str));
 
     // 输出到日志文件, 格式: 时间 - [Level] (文件名:行数, 函数): 消息
 //    QString fileName = context.file;

@@ -44,7 +44,7 @@ void PollDeviceWidget::onRecvData(quint8 type,const QVariant &value)
         //主机串口参数
         auto pollSerialPortParam = value.value<PollSerialPortParam>();
 
-        ui->comboBox_baud->setCurrentText(QString::number(pollSerialPortParam.baud));
+        ui->spinBox_baud->setValue(pollSerialPortParam.baud);
         auto stopbit = int((pollSerialPortParam.param >> 8) & 0xff)/10;
         //停止位
         ui->comboBox_stopbit->setCurrentText(QString::number(stopbit));
@@ -90,7 +90,7 @@ void PollDeviceWidget::on_pushButton_serialport_clicked()
 {
     //写入串口参数
     PollSerialPortParam sparam;
-    sparam.baud = ui->comboBox_baud->currentText().toInt();
+    sparam.baud = ui->spinBox_baud->value();
     sparam.cycleSize = ui->spinBox_cycleSize->value();
     quint16 tParam = 0;
     auto stopBit = ui->comboBox_stopbit->currentText().toInt();
