@@ -13,8 +13,10 @@ class ConnectDialog : public QDialog
 
 public:
     explicit ConnectDialog(QWidget *parent = nullptr);
-    void getData(QVariantHash &);
     ~ConnectDialog();
+
+private:
+    bool connectModBus();
 
 private:
     Ui::ConnectDialog *ui;

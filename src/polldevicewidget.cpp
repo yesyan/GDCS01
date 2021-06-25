@@ -9,6 +9,14 @@ PollDeviceWidget::PollDeviceWidget(QWidget *parent) :
 {
     ui->setupUi(this);
     connect(ModBusObjInstance::getInstance(),&ModBusObjInstance::signalPollParam,this,&PollDeviceWidget::onRecvData);
+
+    QRegExp rx ("((2[0-4]\\d|25[0-5]|[01]?\\d\\d?)\\.){3}(2[0-4]\\d|25[0-5]|[01]?\\d\\d?)") ;
+    QValidator *validator = new QRegExpValidator(rx, this);
+    ui->lineEdit_localIp->setValidator(validator);
+    ui->lineEdit_dns->setValidator(validator);
+    ui->lineEdit_getaway->setValidator(validator);
+    ui->lineEdit_remoteIp->setValidator(validator);
+
     loadDevData();
 }
 

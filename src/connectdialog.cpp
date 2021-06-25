@@ -1,5 +1,8 @@
 ﻿#include "connectdialog.h"
 #include "ui_connectdialog.h"
+#include "modbusobj.h"
+
+#include <QMessageBox>
 
 ConnectDialog::ConnectDialog(QWidget *parent) :
     QDialog(parent),
@@ -24,25 +27,57 @@ ConnectDialog::ConnectDialog(QWidget *parent) :
     QRegExp rx ("((2[0-4]\\d|25[0-5]|[01]?\\d\\d?)\\.){3}(2[0-4]\\d|25[0-5]|[01]?\\d\\d?)") ;
     QValidator *validator = new QRegExpValidator(rx, this);
     ui->lineEdit_ip->setValidator(validator);
-}
 
-void ConnectDialog::getData(QVariantHash &value)
-{
-    if(ui->checkBox_net->isChecked()){
-        value["type"] = "net";
-        value["ip"] = ui->lineEdit_ip->text();
-        value["port"] = ui->spinBox_port->value();
-    }else{
-        value["type"] = "serialPort";
-        value["port"] = ui->comboBox_port->currentText();
-        value["baud"] = ui->comboBox_baud->currentText();
-        value["dataBit"] = ui->comboBox_dataBit->currentText();
-        value["parity"] = ui->comboBox_parity->currentText();
-        value["stopBit"] = ui->comboBox_stopBit->currentText();
-    }
+    connect(ui->buttonBox,&QDialogButtonBox::accepted,this,[=](){
+        if(connectModBus()){
+            this->accept();
+        }else{
+            QMessageBox::information(nullptr,QStringLiteral("提示"),QStringLiteral("连接ModBus失败,程序退出."));
+            this->reject();
+        }
+    });
+
+    connect(ui->buttonBox,&QDialogButtonBox::rejected,this,[=](){
+        this->reject();
+    });
+
+    //测试连接
+    connect(ui->pushButton,&QPushButton::clicked,this,[=](){
+        if(connectModBus()){
+            QMessageBox::information(nullptr,QStringLiteral("提示"),QStringLiteral("连接ModBus成功."));
+        }else{
+            QMessageBox::information(nullptr,QStringLiteral("提示"),QStringLiteral("连接ModBus失败."));
+        }
+    });
 }
 
 ConnectDialog::~ConnectDialog()
 {
     delete ui;
+}
+
+bool ConnectDialog::connectModBus()
+{
+    if(ui->checkBox_net->isChecked()){
+        auto ip = ui->lineEdit_ip->text();
+        auto localPort = ui->spinBox_port->value();
+
+        return (-1 != ModBusObjInstance::getInstance()->connectToNet(ip,localPort));
+    }else{
+
+        auto comPort = ui->comboBox_port->currentText();
+        auto baud    = ui->comboBox_baud->currentText().toInt();
+        auto dataBit = ui->comboBox_dataBit->currentText().toInt();
+        auto parity  = ui->comboBox_parity->currentText();
+        char parityChar;
+        if(parity == QStringLiteral("无校验")){
+            parityChar = 'N';
+        }else if(parity == QStringLiteral("奇校验")){
+            parityChar = 'O';
+        }else if(parity == QStringLiteral("偶校验")){
+            parityChar = 'E';
+        }
+        auto stopBit = ui->comboBox_stopBit->currentText().toInt();
+        return (-1 != ModBusObjInstance::getInstance()->connectToSerialPort(comPort,baud,parityChar,dataBit,stopBit));
+    }
 }
