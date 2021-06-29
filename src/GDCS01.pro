@@ -1,4 +1,5 @@
 QT       += core gui
+QT       += charts
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -22,6 +23,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
     connectdialog.cpp \
+    devicechartview.cpp \
     devicewidget.cpp \
     loghandler.cpp \
     main.cpp \
@@ -31,6 +33,7 @@ SOURCES += \
 
 HEADERS += \
     connectdialog.h \
+    devicechartview.h \
     devicewidget.h \
     global.h \
     loghandler.h \

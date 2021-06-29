@@ -3,6 +3,8 @@
 #include "global.h"
 
 #include <QDebug>
+#include <QTimerEvent>
+
 ModBusObj::ModBusObj(QObject *parent)
           :QObject(parent)
 {
@@ -204,6 +206,86 @@ void ModBusObj::writeModBusRegister(int slave, int addr, const QVector<quint16> 
 
 }
 
+void ModBusObj::readContinuData(int slave,int dataType,int timeOut)
+{
+    if(nullptr == m_modBusCtx)
+        return;
+
+    //选择数据
+    modbus_write_register(m_modBusCtx, slave*100+1, dataType);
+    //请求连续数据
+    uint16_t tValue = 1;
+    modbus_write_register(m_modBusCtx, slave*100+30, tValue);
+
+    m_readCount = 0;
+    m_slave = slave;
+    m_timeOut = timeOut;
+
+    m_timerId = startTimer(1000);
+}
+
+void ModBusObj::timerEvent(QTimerEvent *event)
+{
+    if(m_timerId == event->timerId()){
+
+        if(m_readCount >= (m_timeOut/1000)){
+            qInfo() << QStringLiteral("读取分机(%1)连续数据超时.").arg(m_slave);
+            killTimer(m_timerId);
+            return;
+        }
+
+        QVector<uint16_t> statusValue;
+        statusValue.resize(1);
+        modbus_read_registers(m_modBusCtx, m_slave*100+30, 1, statusValue.data());
+
+        //轮询连续数据状态(1:表示采集连续数据 0:连续数据采集完成 2:连续数据采集失败)
+        if(statusValue[0] == 1){
+            ++m_readCount;
+
+        }else if(statusValue[0] == 2){
+            qInfo() << QStringLiteral("读取分机(%1)连续数据采集失败.").arg(m_slave);
+            killTimer(m_timerId);
+            return;
+
+        }else if(statusValue[0] == 0){
+
+            //读取连续震动采集长度
+            uint16_t tValueSize;
+            auto ret = modbus_read_input_registers(m_modBusCtx,m_slave*100+23,1,&tValueSize);
+            if(ret == -1){
+                qInfo() << QStringLiteral("读取分机(%1)连续震动采集长度失败.").arg(m_slave);
+                killTimer(m_timerId);
+                return;
+            }
+            QVector<uint16_t> tmpData;
+            tmpData.resize(tValueSize/2);
+            ret = modbus_read_input_registers(m_modBusCtx, 4000, tValueSize, tmpData.data());
+            if(ret == -1){
+                qInfo() << QStringLiteral("读取分机(%1)连续数据失败.").arg(m_slave);
+                killTimer(m_timerId);
+                return;
+            }
+
+            //连续数据选择（为何种数据）
+            uint16_t tValueType = 0;
+            ret = modbus_read_input_registers(m_modBusCtx,m_slave*100+1,1,&tValueType);
+            if(ret == -1){
+                qInfo() << QStringLiteral("读取分机(%1)连续数据选择失败.").arg(m_slave);
+                killTimer(m_timerId);
+                return;
+            }
+
+            QByteArray byteData;
+            byteData.resize(tValueSize);
+            memcpy(byteData.data(),tmpData.data(),tValueSize);
+
+            emit signalContinuData(tValueType,byteData);
+            killTimer(m_timerId);
+        }
+
+    }
+}
+
 int ModBusObj::stopConnect()
 {
     if(nullptr != m_modBusCtx){
@@ -403,6 +485,14 @@ void ModBusObjInstance::writeModBusRegister(int slave, int addr, const QVector<q
 
 }
 
+void ModBusObjInstance::readContinuData(int slave, int dataType, int timeOut)
+{
+    if(nullptr == m_modBusObj)
+        return;
+    QMetaObject::invokeMethod(m_modBusObj,"readContinuData",Qt::AutoConnection,
+                              Q_ARG(int, slave),Q_ARG(int,dataType),Q_ARG(int,timeOut));
+}
+
 ModBusObjInstance::ModBusObjInstance()
 {
     m_modBusObj = new ModBusObj;
@@ -415,6 +505,9 @@ ModBusObjInstance::ModBusObjInstance()
     connect(m_modBusObj,&ModBusObj::signalSlaveParam,this,&ModBusObjInstance::signalSlaveParam);
     //读取的值
     connect(m_modBusObj,&ModBusObj::signalReadValue,this,&ModBusObjInstance::signalReadValue);
+
+    //读取的连续数据
+    connect(m_modBusObj,&ModBusObj::signalContinuData,this,&ModBusObjInstance::signalReadContinuData);
 
     m_thread.start();
 }

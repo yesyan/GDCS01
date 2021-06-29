@@ -1,6 +1,7 @@
 ﻿#include "devicewidget.h"
 #include "ui_devicewidget.h"
 #include "modbusobj.h"
+#include "devicechartview.h"
 
 #include <QMessageBox>
 
@@ -78,16 +79,10 @@ void DeviceWidget::onRecvModBusValue(int slave, int addr, const QByteArray &valu
     }
 }
 
-void DeviceWidget::onWriteModBusRegister()
+void DeviceWidget::on_pushButton_reqData_clicked()
 {
-    auto addr = this->sender()->objectName().split('_').last();
-    QVector<quint16> tmpData;
-    auto spinBoxName = "spinBox_" + addr;
-    auto spinBox = this->findChild<QSpinBox*>(spinBoxName);
-    if(spinBox){
-        tmpData.append(quint16(spinBox->value()));
-        ModBusObjInstance::getInstance()->writeModBusRegister(m_slave,addr.toInt(),tmpData);
-    }
+    auto dataType = 1 << ui->comboBox->currentIndex();
+    ModBusObjInstance::getInstance()->readContinuData(m_slave,dataType);
 }
 
 void DeviceWidget::initUi()
@@ -157,11 +152,21 @@ void DeviceWidget::initUi()
         ModBusObjInstance::getInstance()->writeModBusRegister(m_slave,20,tmpData);
 
     });
-    connect(ui->pushButton_22,&QPushButton::clicked,this,&DeviceWidget::onWriteModBusRegister);
-    connect(ui->pushButton_23,&QPushButton::clicked,this,&DeviceWidget::onWriteModBusRegister);
-    //信道
-    connect(ui->pushButton_2,&QPushButton::clicked,this,&DeviceWidget::onWriteModBusRegister);
-    connect(ui->pushButton_31,&QPushButton::clicked,this,&DeviceWidget::onWriteModBusRegister);
-    connect(ui->pushButton_5,&QPushButton::clicked,this,&DeviceWidget::onWriteModBusRegister);
 
+    //设置参数
+    connect(ui->buttonGroup_2,QOverload<QAbstractButton *>::of(&QButtonGroup::buttonClicked),this,[=](QAbstractButton *button){
+        auto addr = button->objectName().split('_').last();
+        QVector<quint16> tmpData;
+        auto spinBox = this->findChild<QSpinBox*>("spinBox_" + addr);
+        if(spinBox){
+            tmpData.append(quint16(spinBox->value()));
+            ModBusObjInstance::getInstance()->writeModBusRegister(m_slave,addr.toInt(),tmpData);
+        }
+    });
+
+    //控制曲线图显示与隐藏
+    connect(ui->buttonGroup,QOverload<QAbstractButton *>::of(&QButtonGroup::buttonClicked),this,[=](QAbstractButton *button){
+        auto index = button->objectName().split('_').last().toInt();
+        ui->widget->setLineSeriesVisible(index,button->isChecked());
+    });
 }

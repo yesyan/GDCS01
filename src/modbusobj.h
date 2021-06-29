@@ -2,8 +2,9 @@
 #define MODBUSOBJ_H
 
 #include <QObject>
-#include "modbus.h"
 #include <QThread>
+
+#include "modbus.h"
 #include "global.h"
 
 class ModBusObj : public QObject
@@ -20,6 +21,8 @@ signals:
     void signalSlaveParam(int slave,int type,const QVariant &);
 
     void signalReadValue(int slave,int addr,const QByteArray &);
+    void signalContinuData(int type,const QByteArray &value);
+
 
 public slots:
     //网络连接
@@ -40,7 +43,11 @@ public slots:
     //根据地址写入数据
     void writeModBusRegister(int slave,int addr,const QVector<quint16> &value);
 
+    //读取连续数据
+    void readContinuData(int slave ,int dataType,int timeOut);
 
+protected:
+     void timerEvent(QTimerEvent *event) override;
 
 private:
     int stopConnect();
@@ -56,6 +63,11 @@ private:
 private:
     modbus_t *m_modBusCtx = nullptr;
     QString m_connectType;
+    int m_timerId;
+
+    int m_timeOut;
+    int m_slave;
+    int m_readCount;
 };
 
 
@@ -97,6 +109,9 @@ public:
     //根据地址写入数据
     void writeModBusRegister(int slave,int addr,const QVector<quint16> &value);
 
+    //读取连续数据
+    void readContinuData(int slave ,int dataType,int timeOut = 60000);
+
 signals:
     //读取到主机数据
     void signalPollParam(quint8 type,const QVariant &);
@@ -105,6 +120,8 @@ signals:
 
     //读取的数据
     void signalReadValue(int slave,int addr,const QByteArray &);
+    //读取到的连续数据
+    void signalReadContinuData(int type,const QByteArray &value);
 private:
     ModBusObjInstance();
     ~ModBusObjInstance();

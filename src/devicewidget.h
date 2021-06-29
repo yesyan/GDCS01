@@ -21,7 +21,7 @@ public slots:
     void onRecvModBusValue(int slave, int addr, const QByteArray &value);
 
 private slots:
-    void onWriteModBusRegister();
+    void on_pushButton_reqData_clicked();
 
 signals:
     void signalBack();
