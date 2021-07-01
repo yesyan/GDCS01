@@ -502,6 +502,12 @@
          </item>
          <item>
           <widget class="QSpinBox" name="spinBox_23">
+           <property name="suffix">
+            <string>字节</string>
+           </property>
+           <property name="prefix">
+            <string/>
+           </property>
            <property name="maximum">
             <number>999</number>
            </property>
@@ -810,11 +816,11 @@
  <resources/>
  <connections/>
  <buttongroups>
+  <buttongroup name="buttonGroup_2"/>
   <buttongroup name="buttonGroup">
    <property name="exclusive">
     <bool>false</bool>
    </property>
   </buttongroup>
-  <buttongroup name="buttonGroup_2"/>
  </buttongroups>
 </ui>

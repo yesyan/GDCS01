@@ -17,6 +17,8 @@ public:
 
 private:
     bool connectModBus();
+    void loadConfig();
+    void saveConfig();
 
 private:
     Ui::ConnectDialog *ui;

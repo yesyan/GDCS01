@@ -1,5 +1,5 @@
 QT       += core gui
-QT       += charts
+QT       += charts serialport
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -22,9 +22,11 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    config.cpp \
     connectdialog.cpp \
     devicechartview.cpp \
     devicewidget.cpp \
+    json.cpp \
     loghandler.cpp \
     main.cpp \
     mainwindow.cpp \
@@ -32,10 +34,12 @@ SOURCES += \
     polldevicewidget.cpp
 
 HEADERS += \
+    config.h \
     connectdialog.h \
     devicechartview.h \
     devicewidget.h \
     global.h \
+    json.h \
     loghandler.h \
     mainwindow.h \
     modbusobj.h \

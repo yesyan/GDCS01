@@ -2,6 +2,7 @@
 #include <QChart>
 #include <QLineSeries>
 #include <QTime>
+#include <QtEndian>
 
 #include "modbusobj.h"
 
@@ -69,6 +70,8 @@ void DeviceChartView::initUi()
 
     m_chart->createDefaultAxes();
     this->setChart(m_chart);
+    m_chart->axisX()->setMax(50);
+    m_chart->axisY()->setMax(20);
 }
 
 void DeviceChartView::onRenderView(int index, const QByteArray &value)
@@ -82,6 +85,7 @@ void DeviceChartView::onRenderView(int index, const QByteArray &value)
         memcpy(tValue.data(),value.data(),value.size());
 
         for(auto index = 0 ;index < tValue.size() ; ++index){
+            //lineSeries->append(index,qFromBigEndian<quint16>(tValue[index]));
             lineSeries->append(index,tValue[index]);
         }
     }
