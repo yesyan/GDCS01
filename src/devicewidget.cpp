@@ -5,6 +5,8 @@
 
 #include <QMessageBox>
 
+static const int SlaveReadSize = 36;
+
 DeviceWidget::DeviceWidget(QWidget *parent) :
     QWidget(parent),
     ui(new Ui::DeviceWidget)
@@ -23,13 +25,13 @@ DeviceWidget::~DeviceWidget()
 void DeviceWidget::loadData(uint8_t slave)
 {
     ui->label_slave->setText(QStringLiteral("从机%1参数信息").arg(slave));
-    ModBusObjInstance::getInstance()->readModBusRegister(slave,1,35);
+    ModBusObjInstance::getInstance()->readModBusRegister(slave,0,SlaveReadSize);
     m_slave = slave;
 }
 
 void DeviceWidget::onRecvModBusValue(int slave, int addr, const QByteArray &value)
 {
-    if(slave == m_slave && addr == 1 && value.size() == 35*sizeof (quint16)){
+    if(slave == m_slave && addr == 0 && value.size() == SlaveReadSize*sizeof (quint16)){
 
 
         QVector<quint16> tValue;
@@ -64,18 +66,18 @@ void DeviceWidget::onRecvModBusValue(int slave, int addr, const QByteArray &valu
         ui->spinBox_16->setValue(tValue[16]);
         //y方向
         ui->spinBox_17->setValue(tValue[17]);
-        ui->spinBox_18->setValue(value[18]);
-        ui->spinBox_19->setValue(value[19]);
+        ui->spinBox_18->setValue(tValue[18]);
+        ui->spinBox_19->setValue(tValue[19]);
         //温度报警预警值
-        ui->spinBox_20->setValue(value[20]);
+        ui->spinBox_20->setValue(tValue[20]);
         //采样间隔
-        ui->spinBox_21->setValue(value[21]);
+        ui->spinBox_21->setValue(tValue[21]);
         //连续时间采样间隔
-        ui->spinBox_22->setValue(value[22]);
+        ui->spinBox_22->setValue(tValue[22]);
         //连续震动采集长度
-        ui->spinBox_23->setValue(value[23]);
+        ui->spinBox_23->setValue(tValue[23]);
         //连续数据反馈
-        ui->spinBox_31->setValue(value[31]);
+        ui->spinBox_31->setValue(tValue[31]);
     }
 }
 
