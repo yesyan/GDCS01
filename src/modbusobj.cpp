@@ -6,6 +6,12 @@
 #include <QTimerEvent>
 #include <QtMath>
 
+static QString checkInfo(uint16_t value){
+
+    return (value == 1 ? QStringLiteral("告警") : QStringLiteral("正常"));
+}
+
+
 ModBusObj::ModBusObj(QObject *parent)
           :QObject(parent)
 {
@@ -88,30 +94,6 @@ int ModBusObj::getConnectSlaveAddr()
     return -1;
 }
 
-bool ModBusObj::getSlaveSysParam(int slave, QVariantHash &value)
-{
-    if(nullptr == m_modBusCtx)
-        return false;
-
-    int readAddr = 100*slave + 0;
-    QVector<uint16_t> tmpData;
-    tmpData.resize(4);
-    auto ret = modbus_read_input_registers(m_modBusCtx,readAddr,4,tmpData.data());
-    if(ret == -1){
-        qInfo() << QStringLiteral("读取分机(%1)系统参数失败.").arg(slave);
-        return false;
-    }
-
-    //硬件版本
-    value.insert(HardwareVersion,QString::number(tmpData[0]));
-    //软件版本
-    value.insert(SoftwareVersion,QString::number(tmpData[1]));
-    //设备ID信息
-    value.insert(DeviceID,QString::number(tmpData[2]) + QString::number(tmpData[3]));
-
-    return true;
-}
-
 void ModBusObj::pollParam(quint8 opType, quint8 paramType, const QVariant &param)
 {
     if(0 == opType && 0 == paramType){
@@ -150,16 +132,6 @@ void ModBusObj::pollParam(quint8 opType, quint8 paramType, const QVariant &param
         //写入主机串口数据
         writePollSerialPortParam(param);
 
-    }
-}
-
-void ModBusObj::readSlaveParam(int slave, quint8 paramType)
-{
-    if(paramType == 3){
-        //从机系统参数
-        QVariantHash tValue;
-        if(getSlaveSysParam(slave,tValue))
-            emit signalSlaveParam(slave,3,tValue);
     }
 }
 
@@ -225,6 +197,30 @@ void ModBusObj::readContinuData(int slave,int dataType,int timeOut)
     m_timerId = startTimer(1000);
 }
 
+void ModBusObj::startAlarmTimer()
+{
+    m_alarmTimerId = startTimer(1000);
+}
+
+void ModBusObj::readSlaveReadOnlyData(int slave, QVariantHash &value)
+{
+    if(nullptr == m_modBusCtx)
+        return;
+    QVector<uint16_t> tValue;
+    tValue.fill(0,12);
+    auto ret = modbus_read_input_registers(m_modBusCtx, slave*100+4, 12, tValue.data());
+    if(ret == -1){
+        qInfo() << QStringLiteral("读取分机(%1)特征值失败").arg(slave);
+        return;
+    }
+    for(auto index = 0 ; index < tValue.count(); ++index){
+        value.insert(QString::number(index+4),tValue[index]/10);
+    }
+    tValue.fill(0,1);
+    ret = modbus_read_input_registers(m_modBusCtx, slave*100+40, 1, tValue.data());
+    value.insert(QString::number(40),tValue[0]);
+}
+
 void ModBusObj::timerEvent(QTimerEvent *event)
 {
     if(m_timerId == event->timerId()){
@@ -286,6 +282,54 @@ void ModBusObj::timerEvent(QTimerEvent *event)
             killTimer(m_timerId);
         }
 
+    }else if(m_alarmTimerId == event->timerId()){
+
+        QVariantList alarmInfo;
+        for(auto slave = 1; slave < 31; ++slave){
+
+            int readAddr = 100*slave + 0;
+            QVector<uint16_t> tmpData;
+            tmpData.fill(0,4);
+            auto ret = modbus_read_input_registers(m_modBusCtx,readAddr,4,tmpData.data());
+            if(ret == -1){
+                alarmInfo.append(QVariant());
+                continue;
+            }
+
+            QVariantHash singleValue;
+            //硬件版本
+            singleValue.insert(HardwareVersion,QString::number(tmpData[0]));
+            //软件版本
+            singleValue.insert(SoftwareVersion,QString::number(tmpData[1]));
+            //设备ID信息
+            singleValue.insert(DeviceID,QString::number(tmpData[2]) + QString::number(tmpData[3]));
+
+            tmpData.fill(0,11);
+            readAddr = 100*slave + 16;
+            ret = modbus_read_input_registers(m_modBusCtx,readAddr,11,tmpData.data());
+            if(ret == -1){
+                alarmInfo.append(singleValue);
+                continue;
+            }
+
+            singleValue.insert(X_AccSpeed,checkInfo(tmpData[0]));
+            singleValue.insert(X_Speed,checkInfo(tmpData[1]));
+            singleValue.insert(X_Displace,checkInfo(tmpData[2]));
+
+            singleValue.insert(Y_AccSpeed,checkInfo(tmpData[3]));
+            singleValue.insert(Y_Speed,checkInfo(tmpData[4]));
+            singleValue.insert(Y_Displace,checkInfo(tmpData[5]));
+
+            singleValue.insert(Z_AccSpeed,checkInfo(tmpData[6]));
+            singleValue.insert(Z_Speed,checkInfo(tmpData[7]));
+            singleValue.insert(Z_Displace,checkInfo(tmpData[8]));
+
+            singleValue.insert(Slave_Temp,QString::number(tmpData[9]/10));
+            singleValue.insert(Slave_Temp_Alarm,checkInfo(tmpData[10]));
+
+            alarmInfo.append(singleValue);
+        }
+        emit signalAlarmInfo(alarmInfo);
     }
 }
 
@@ -460,15 +504,6 @@ void ModBusObjInstance::pollParam(ModBusObjInstance::OperationType opType, ModBu
                               Q_ARG(const QVariant &,param));
 }
 
-void ModBusObjInstance::readSlaveParam(int slave, ModBusObjInstance::ParamType paramType)
-{
-    if(nullptr == m_modBusObj)
-        return;
-    QMetaObject::invokeMethod(m_modBusObj,"readSlaveParam",Qt::AutoConnection,
-                              Q_ARG(int, slave),Q_ARG(quint8, paramType));
-
-}
-
 void ModBusObjInstance::readModBusRegister(int slave, int addr, int readCount, bool readOnly)
 {
     if(nullptr == m_modBusObj)
@@ -496,6 +531,22 @@ void ModBusObjInstance::readContinuData(int slave, int dataType, int timeOut)
                               Q_ARG(int, slave),Q_ARG(int,dataType),Q_ARG(int,timeOut));
 }
 
+void ModBusObjInstance::startAlarmCycle()
+{
+    if(nullptr == m_modBusObj)
+        return;
+    QMetaObject::invokeMethod(m_modBusObj,"startAlarmTimer");
+}
+
+void ModBusObjInstance::readSlaveReadOnlyData(int slave, QVariantHash &value)
+{
+    if(nullptr == m_modBusObj)
+        return;
+    m_modBusObj->readSlaveReadOnlyData(slave,value);
+//    QMetaObject::invokeMethod(m_modBusObj,"readSlaveReadOnlyData",
+//                              Q_ARG(int,slave),Q_ARG(QVariant &,value));
+}
+
 ModBusObjInstance::ModBusObjInstance()
 {
     m_modBusObj = new ModBusObj;
@@ -504,13 +555,14 @@ ModBusObjInstance::ModBusObjInstance()
 
     //主机回传参数
     connect(m_modBusObj,&ModBusObj::signalPollParam,this,&ModBusObjInstance::signalPollParam);
-    //分机回传参数
-    connect(m_modBusObj,&ModBusObj::signalSlaveParam,this,&ModBusObjInstance::signalSlaveParam);
     //读取的值
     connect(m_modBusObj,&ModBusObj::signalReadValue,this,&ModBusObjInstance::signalReadValue);
 
     //读取的连续数据
     connect(m_modBusObj,&ModBusObj::signalContinuData,this,&ModBusObjInstance::signalReadContinuData);
+    //轮询的告警信息
+    connect(m_modBusObj,&ModBusObj::signalAlarmInfo,this,&ModBusObjInstance::signalAlarmInfo);
+
 
     m_thread.start();
 }

@@ -25,9 +25,10 @@ MainWindow::MainWindow(QWidget *parent)
     initUi();
     setWindowTitle(QStringLiteral("振动软件"));
 
-    connect(ModBusObjInstance::getInstance(),&ModBusObjInstance::signalSlaveParam,this,&MainWindow::onRecvSlaveParam);
-    //检测分机状态
-    checkSlaveStatus();
+    connect(ModBusObjInstance::getInstance(),&ModBusObjInstance::signalAlarmInfo,this,&MainWindow::onRecvCycleInfo);
+
+    //开启定时轮询
+    ModBusObjInstance::getInstance()->startAlarmCycle();
 }
 
 MainWindow::~MainWindow()
@@ -35,64 +36,88 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-void MainWindow::onRecvSlaveParam(int slave, int type, const QVariant &value)
+void MainWindow::onRecvCycleInfo(const QVariant &value)
 {
-    if(type == ModBusObjInstance::SlaveSysParam && slave >=1){
-        auto devId = value.toHash()[DeviceID].toString();
-        auto hardVersion = value.toHash()[HardwareVersion].toString();
-        auto softVersion = value.toHash()[SoftwareVersion].toString();
-        m_slaveTableWidget->item(slave-1,0)->setText(devId);
-        m_slaveTableWidget->item(slave-1,1)->setText(hardVersion);
-        m_slaveTableWidget->item(slave-1,2)->setText(softVersion);
+    auto listValue = value.toList();
+    for(auto index = 0; index < listValue.count(); ++index){
+        for(auto cIndex = 0; cIndex < ui->tableWidget->columnCount(); ++cIndex){
+
+            if(!listValue[index].isValid()){
+                auto item = ui->tableWidget->item(index,cIndex);
+                item->setText("none");
+            }
+            auto columnText = ui->tableWidget->horizontalHeaderItem(cIndex)->text();
+            if(listValue[index].toHash().contains(columnText)){
+                auto tValue = listValue[index].toHash()[columnText].toString();
+                auto item = ui->tableWidget->item(index,cIndex);
+                if(tValue == QStringLiteral("告警")){
+                    item->setText(tValue);
+                }else{
+                    item->setText(tValue);
+                }
+            }
+        }
     }
 }
 
 void MainWindow::initUi()
 {
-    auto layout = new QStackedLayout;
-    m_slaveTableWidget = new QTableWidget;
-    m_slaveTableWidget->setRowCount(SlaveCount);
-    m_slaveTableWidget->setColumnCount(3);
-    m_slaveTableWidget->setHorizontalHeaderLabels({DeviceID, HardwareVersion, SoftwareVersion});
-    m_slaveTableWidget->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    m_slaveTableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
+    ui->tableWidget->setRowCount(SlaveCount);
+    ui->tableWidget->setColumnCount(14);
+    ui->tableWidget->setHorizontalHeaderLabels({DeviceID, HardwareVersion, SoftwareVersion,
+                                                   X_AccSpeed,X_Speed,X_Displace,Y_AccSpeed,
+                                                   Y_Speed,Y_Displace,Z_AccSpeed,Z_Speed,
+                                                   Z_Displace,Slave_Temp,Slave_Temp_Alarm});
 
     for(auto row = 0;row < SlaveCount; ++row){
-        m_slaveTableWidget->setItem(row,0,new QTableWidgetItem("none"));
-        m_slaveTableWidget->setItem(row,1,new QTableWidgetItem("none"));
-        m_slaveTableWidget->setItem(row,2,new QTableWidgetItem("none"));
+        for(auto column = 0 ; column < ui->tableWidget->columnCount(); ++column){
+            auto item = new QTableWidgetItem("none");
+            item->setTextAlignment(Qt::AlignCenter);
+            ui->tableWidget->setItem(row,column,item);
+        }
     }
 
-    layout->addWidget(m_slaveTableWidget);
-
-
-    ui->tab_2->setLayout(layout);
-
-    connect(m_slaveTableWidget,&QTableWidget::doubleClicked,this,[=](const QModelIndex &index){
+    //双击跳转到设备详细参数
+    connect(ui->tableWidget,&QTableWidget::doubleClicked,this,[=](const QModelIndex &index){
         auto row = index.row();
         m_devWid = new DeviceWidget;
 
         connect(m_devWid,&DeviceWidget::signalBack,this,[=](){
-            layout->setCurrentIndex(0);
-            layout->removeWidget(m_devWid);
+            ui->stackedWidget->setCurrentIndex(0);
+            ui->stackedWidget->removeWidget(m_devWid);
             m_devWid->deleteLater();
             m_devWid = nullptr;
         });
-        layout->addWidget(m_devWid);
+        ui->stackedWidget->addWidget(m_devWid);
         m_devWid->loadData(row+1);
-        layout->setCurrentIndex(1);
+        ui->stackedWidget->setCurrentIndex(1);
+    });
+
+    //选中区域变化，读取分机参数
+    connect(ui->tableWidget,&QTableWidget::itemSelectionChanged,this,[=](){
+
+        QVariantHash value;
+        auto slave = ui->tableWidget->currentRow()+1;
+        ModBusObjInstance::getInstance()->readSlaveReadOnlyData(slave,value);
+
+        ui->groupBox->setTitle(QStringLiteral("分机%1只读参数").arg(slave));
+        //刷新界面
+        QHash<QString, QVariant>::const_iterator iter = value.constBegin();
+        while (iter != value.constEnd()) {
+            QString className = "spinBox_" + iter.key();
+            auto spinBox = this->findChild<QSpinBox*>(className);
+            if(spinBox){
+                spinBox->setValue(iter.value().toInt());
+            }
+            ++iter;
+        }
+
     });
 
     auto tlayout = new QHBoxLayout;
     auto textEdit = LogHandler::getInstance()->getTextView();
     tlayout->addWidget(textEdit);
-    ui->widget->setLayout(tlayout);
+    ui->widget_log->setLayout(tlayout);
 }
 
-void MainWindow::checkSlaveStatus()
-{
-    for(auto slave = 1 ; slave < SlaveCount+1 ; ++slave){
-        ModBusObjInstance::getInstance()->readSlaveParam(slave,ModBusObjInstance::SlaveSysParam);
-    }
-}
 

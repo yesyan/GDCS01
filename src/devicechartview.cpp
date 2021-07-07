@@ -34,7 +34,7 @@ void DeviceChartView::initUi()
     m_axisY = new QValueAxis();
     m_axisY->setTitleText("Values");
     m_axisY->setLabelFormat("%d");
-    m_axisY->setRange(-100,100);
+    m_axisY->setRange(-10,10);
     m_chart->addAxis(m_axisY, Qt::AlignLeft);
 
 

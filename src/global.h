@@ -11,11 +11,27 @@ static const QString SoftwareVersion = QStringLiteral("软件版本");
 
 static const QString DeviceID = QStringLiteral("设备ID");
 
-static const QString DeviceType = QStringLiteral("设备型号");
+static const QString X_AccSpeed = QStringLiteral("X轴加速度");
 
-static const QString SysDateTime = QStringLiteral("系统时间");
+static const QString X_Speed = QStringLiteral("X轴速度");
 
-static const QString DevParam  = QStringLiteral("设备参数");
+static const QString X_Displace  = QStringLiteral("X轴位移");
+
+static const QString Y_AccSpeed = QStringLiteral("Y轴加速度");
+
+static const QString Y_Speed = QStringLiteral("Y轴速度");
+
+static const QString Y_Displace  = QStringLiteral("Y轴位移");
+
+static const QString Z_AccSpeed = QStringLiteral("Z轴加速度");
+
+static const QString Z_Speed = QStringLiteral("Z轴速度");
+
+static const QString Z_Displace  = QStringLiteral("Z轴位移");
+
+static const QString Slave_Temp = QStringLiteral("温度");
+
+static const QString Slave_Temp_Alarm  = QStringLiteral("温度报警");
 
 
 //主机系统参数

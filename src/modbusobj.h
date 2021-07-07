@@ -18,11 +18,11 @@ public:
 
 signals:
     void signalPollParam(quint8 paramType, const QVariant &);
-    void signalSlaveParam(int slave,int type,const QVariant &);
 
     void signalReadValue(int slave,int addr,const QByteArray &);
     void signalContinuData(int type,const QByteArray &value);
-
+    //报警信息
+    void signalAlarmInfo(const QVariant &);
 
 public slots:
     //网络连接
@@ -35,8 +35,6 @@ public slots:
 
     //操作主机参数
     void pollParam(quint8 opType, quint8 paramType,const QVariant &param);
-    //读取从机系统参数
-    void readSlaveParam(int slave, quint8 paramType);
 
     //根据地址读取数据
     void readModBusRegister(int slave,int addr,int readCount,bool readOnly = false);
@@ -45,6 +43,10 @@ public slots:
 
     //读取连续数据
     void readContinuData(int slave ,int dataType,int timeOut);
+    //启动报警信息轮询定时器
+    void startAlarmTimer();
+    //请求分机只读数据
+    void readSlaveReadOnlyData(int slave, QVariantHash &value);
 
 protected:
      void timerEvent(QTimerEvent *event) override;
@@ -63,11 +65,12 @@ private:
 private:
     modbus_t *m_modBusCtx = nullptr;
     QString m_connectType;
-    int m_timerId;
+    int m_timerId = 0;
+    int m_alarmTimerId = 0;
 
-    int m_timeOut;
-    int m_slave;
-    int m_readCount;
+    int m_timeOut = 0;
+    int m_slave = 0;
+    int m_readCount = 0;
 };
 
 
@@ -94,15 +97,12 @@ public:
     enum ParamType{
         PollSysParam = 0,   //主机系统参数
         PollNetParam = 1,   //主机网络参数
-        PollSpParam =  2,   //主机串口参数
-        SlaveSysParam = 3   //从机系统参数
+        PollSpParam =  2    //主机串口参数
     };
 
 public:
     //主机参数
     void pollParam(OperationType opType,ParamType paramType,const QVariant &param);
-    //读取从机系统参数
-    void readSlaveParam(int slave,ParamType paramType);
 
     //根据地址读取数据
     void readModBusRegister(int slave,int addr,int readCount,bool readOnly = false);
@@ -111,17 +111,22 @@ public:
 
     //读取连续数据
     void readContinuData(int slave ,int dataType,int timeOut = 60000);
+    //启动报警信息监测
+    void startAlarmCycle();
+    //请求分机的只读参数
+    void readSlaveReadOnlyData(int slave, QVariantHash &value);
 
 signals:
     //读取到主机数据
     void signalPollParam(quint8 type,const QVariant &);
-    //读取到分机数据
-    void signalSlaveParam(int slave,int type,const QVariant &);
 
     //读取的数据
     void signalReadValue(int slave,int addr,const QByteArray &);
     //读取到的连续数据
     void signalReadContinuData(int type,const QByteArray &value);
+    //报警信息
+    void signalAlarmInfo(const QVariant &);
+
 private:
     ModBusObjInstance();
     ~ModBusObjInstance();

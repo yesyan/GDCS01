@@ -18,17 +18,14 @@ public:
     ~MainWindow();
 
 public slots:
-    void onRecvSlaveParam(int slave,int type,const QVariant &value);
+    void onRecvCycleInfo(const QVariant &value);
 
 private:
     void initUi();
-    //检测分机状态
-    void checkSlaveStatus();
 
 private:
     Ui::MainWindow *ui;
 
     DeviceWidget *m_devWid = nullptr;
-    QTableWidget *m_slaveTableWidget = nullptr;
 };
 #endif // MAINWINDOW_H
