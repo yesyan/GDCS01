@@ -25,7 +25,7 @@ MainWindow::MainWindow(QWidget *parent)
     initUi();
     setWindowTitle(QStringLiteral("振动软件"));
 
-    connect(ModBusObjInstance::getInstance(),&ModBusObjInstance::signalAlarmInfo,this,&MainWindow::onRecvCycleInfo);
+    connect(ModBusObjInstance::getInstance()->getModBusObj(),&ModBusObj::signalAlarmInfo,this,&MainWindow::onRecvCycleInfo);
 
     //开启定时轮询
     ModBusObjInstance::getInstance()->startAlarmCycle();
@@ -94,16 +94,25 @@ void MainWindow::initUi()
     });
 
     //选中区域变化，读取分机参数
-    connect(ui->tableWidget,&QTableWidget::itemSelectionChanged,this,[=](){
+    connect(ui->tableWidget,&QTableWidget::currentItemChanged,this,[=](QTableWidgetItem *current, QTableWidgetItem *previous){
 
-        QVariantHash value;
-        auto slave = ui->tableWidget->currentRow()+1;
-        ModBusObjInstance::getInstance()->readSlaveReadOnlyData(slave,value);
+        if(previous){
+            if(current->row() == previous->row())
+                return;
+        }
+
+        auto slave = current->row()+1;
+        ModBusObjInstance::getInstance()->readSlaveReadOnlyData(slave);
+
+    });
+
+    //刷新分机的只读参数
+    connect(ModBusObjInstance::getInstance()->getModBusObj(),&ModBusObj::signalSlaveFV,this,[=](int slave,const QVariant &value){
 
         ui->groupBox->setTitle(QStringLiteral("分机%1只读参数").arg(slave));
         //刷新界面
-        QHash<QString, QVariant>::const_iterator iter = value.constBegin();
-        while (iter != value.constEnd()) {
+        QHash<QString, QVariant>::const_iterator iter = value.toHash().constBegin();
+        while (iter != value.toHash().constEnd()) {
             QString className = "spinBox_" + iter.key();
             auto spinBox = this->findChild<QSpinBox*>(className);
             if(spinBox){

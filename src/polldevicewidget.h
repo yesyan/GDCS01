@@ -27,9 +27,6 @@ public slots:
     void on_pushButton_sparam_clicked();
 
 private:
-    //加载设备数据
-    void loadDevData();
-private:
     Ui::PollDeviceWidget *ui;
 };
 

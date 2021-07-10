@@ -14,7 +14,7 @@ DeviceWidget::DeviceWidget(QWidget *parent) :
     ui->setupUi(this);
     initUi();
 
-    connect(ModBusObjInstance::getInstance(),&ModBusObjInstance::signalReadValue,this,&DeviceWidget::onRecvModBusValue);
+    connect(ModBusObjInstance::getInstance()->getModBusObj(),&ModBusObj::signalReadValue,this,&DeviceWidget::onRecvModBusValue);
 }
 
 DeviceWidget::~DeviceWidget()
@@ -42,6 +42,8 @@ void DeviceWidget::onRecvModBusValue(int slave, int addr, const QByteArray &valu
         ui->spinBox_2->setValue(tValue[2]);
         //采样率
         ui->spinBox_3->setValue(tValue[3]);
+        //是否开启报警检测
+        ui->checkBox_4->setChecked(tValue[4] == 1);
         //空中速率
         ui->spinBox_5->setValue(tValue[5]);
         //远端通讯格式
@@ -76,6 +78,8 @@ void DeviceWidget::onRecvModBusValue(int slave, int addr, const QByteArray &valu
         ui->spinBox_22->setValue(tValue[22]);
         //连续震动采集长度
         ui->spinBox_23->setValue(tValue[23]);
+        //设置报警是否需要发送连续波形
+        ui->checkBox_24->setChecked(tValue[24] == 1);
         //连续数据反馈
         ui->spinBox_31->setValue(tValue[31]);
     }
@@ -170,5 +174,21 @@ void DeviceWidget::initUi()
     connect(ui->buttonGroup,QOverload<QAbstractButton *>::of(&QButtonGroup::buttonClicked),this,[=](QAbstractButton *button){
         auto index = button->objectName().split('_').last().toInt();
         ui->widget->setLineSeriesVisible(index,button->isChecked());
+    });
+
+    //是否开启报警检测
+    connect(ui->checkBox_4,&QCheckBox::clicked,this,[=](bool checked){
+        QVector<quint16> tmpData;
+        quint16 tValue = checked ? 1 : 0;
+        tmpData.append(tValue);
+        ModBusObjInstance::getInstance()->writeModBusRegister(m_slave,4,tmpData);
+    });
+
+    //设置报警是否需要发送连续波形
+    connect(ui->checkBox_24,&QCheckBox::clicked,this,[=](bool checked){
+        QVector<quint16> tmpData;
+        quint16 tValue = checked ? 1 : 0;
+        tmpData.append(tValue);
+        ModBusObjInstance::getInstance()->writeModBusRegister(m_slave,24,tmpData);
     });
 }

@@ -12,8 +12,7 @@ static QString checkInfo(uint16_t value){
 }
 
 
-ModBusObj::ModBusObj(QObject *parent)
-          :QObject(parent)
+ModBusObj::ModBusObj()
 {
 
 }
@@ -87,22 +86,31 @@ int ModBusObj::serialPortConnect(const QString &dev, int baud, char parity, int 
     return ret;
 }
 
-int ModBusObj::getConnectSlaveAddr()
+void ModBusObj::readPollParam(quint8 type)
 {
-    if(m_modBusCtx)
-        return modbus_get_slave(m_modBusCtx);
-    return -1;
-}
+    if(0 == type){
 
-void ModBusObj::pollParam(quint8 opType, quint8 paramType, const QVariant &param)
-{
-    if(0 == opType && 0 == paramType){
         //读取主机系统参数
         readPollSysParam();
 
-    }else if(1 == opType && 0 == paramType){
+    }else if(1 == type){
+
+        //读取主机网路参数
+        readPollNetParam();
+
+    }else if(2 == type){
+
+        //读取主机串口参数
+        readPollSerialPortParam();
+    }
+}
+
+void ModBusObj::writePollParam(quint8 type, const QVariant &value)
+{
+    if(0 == type){
+
         //写入系统时间
-        auto sysParam = param.value<PollSysParam>();
+        auto sysParam = value.value<PollSysParam>();
         QVector<uint16_t> tmpData;
         tmpData.append(sysParam.sysDataTime1);
         tmpData.append(sysParam.sysDataTime2);
@@ -110,28 +118,24 @@ void ModBusObj::pollParam(quint8 opType, quint8 paramType, const QVariant &param
 
         auto ret = modbus_write_registers(m_modBusCtx,20,3,tmpData.data());
         if(ret == -1){
-            qInfo() << QStringLiteral("写入系统时间失败.");
+            qInfo() << QStringLiteral("主机写入系统时间失败.");
+            return;
         }
         //配置生效
         uint16_t tValue = 1;
         modbus_write_registers(m_modBusCtx,19,1,&tValue);
 
-    }else if(0 == opType && 1 == paramType){
-        //读取主机网路参数
-        readPollNetParam();
+        qInfo() << QStringLiteral("主机写入系统时间成功.");
 
-    }else if(1 == opType && 1 == paramType){
+    }else if(1 == type){
+
         //写入主机网络参数
-        writePollNetParam(param);
+        writePollNetParam(value);
 
-    }else if(0 == opType && 2 == paramType){
-        //读取主机串口参数
-        readPollSerialPortParam();
+    }else if(2 == type){
 
-    }else if(1 == opType && 2 == paramType){
         //写入主机串口数据
-        writePollSerialPortParam(param);
-
+        writePollSerialPortParam(value);
     }
 }
 
@@ -202,8 +206,9 @@ void ModBusObj::startAlarmTimer()
     m_alarmTimerId = startTimer(1000);
 }
 
-void ModBusObj::readSlaveReadOnlyData(int slave, QVariantHash &value)
+void ModBusObj::readSlaveReadOnlyData(int slave)
 {
+    QVariantHash retValue;
     if(nullptr == m_modBusCtx)
         return;
     QVector<uint16_t> tValue;
@@ -213,12 +218,14 @@ void ModBusObj::readSlaveReadOnlyData(int slave, QVariantHash &value)
         qInfo() << QStringLiteral("读取分机(%1)特征值失败").arg(slave);
         return;
     }
+
     for(auto index = 0 ; index < tValue.count(); ++index){
-        value.insert(QString::number(index+4),tValue[index]/10);
+        retValue.insert(QString::number(index+4),tValue[index]);
     }
     tValue.fill(0,1);
     ret = modbus_read_input_registers(m_modBusCtx, slave*100+40, 1, tValue.data());
-    value.insert(QString::number(40),tValue[0]);
+    retValue.insert(QString::number(40),tValue[0]);
+    emit  signalSlaveFV(slave , retValue);
 }
 
 void ModBusObj::timerEvent(QTimerEvent *event)
@@ -350,9 +357,8 @@ void ModBusObj::readPollSysParam()
     auto ret = modbus_read_input_registers(m_modBusCtx,0,4,tmpData.data());
     if(ret == -1){
         qInfo() << QStringLiteral("读取主机系统参数失败.");
-        return;
     }
-    auto devId = (tmpData[2] << 16) & 0xff;
+    auto devId = (tmpData[2] << 16);
     devId |= (tmpData[3] & 0xff);
 
     PollSysParam sysParam;
@@ -361,13 +367,13 @@ void ModBusObj::readPollSysParam()
     sysParam.devId = QString::number(devId);
 
     tmpData.fill(0);
-    ret = modbus_read_input_registers(m_modBusCtx,20,3,tmpData.data());
+    ret = modbus_read_registers(m_modBusCtx,20,3,tmpData.data());
     if(ret == -1){
         qInfo() << QStringLiteral("读取系统时间失败.");
     }
     sysParam.sysDataTime1 = tmpData[0];
     sysParam.sysDataTime2 = tmpData[1];
-    sysParam.sysDataTime2 = tmpData[2];
+    sysParam.sysDataTime3 = tmpData[2];
 
     emit signalPollParam(0,QVariant::fromValue(sysParam));
 }
@@ -442,6 +448,7 @@ void ModBusObj::writePollNetParam(const QVariant &param)
     uint16_t tValue = 1;
     modbus_write_registers(m_modBusCtx,19,1,&tValue);
 
+    qInfo() << QStringLiteral("写入主机网络参数成功.");
 }
 
 void ModBusObj::readPollSerialPortParam()
@@ -483,6 +490,7 @@ void ModBusObj::writePollSerialPortParam(const QVariant &param)
     uint16_t tValue = 1;
     modbus_write_registers(m_modBusCtx,19,1,&tValue);
 
+    qInfo() << QStringLiteral("写入主机串口参数成功.");
 }
 
 int ModBusObjInstance::connectToNet(const QString &ip, int port)
@@ -495,19 +503,22 @@ int ModBusObjInstance::connectToSerialPort(const QString &dev, int baud, char pa
     return m_modBusObj->serialPortConnect(dev,baud,parity,dataBit,stopBit);
 }
 
-void ModBusObjInstance::pollParam(ModBusObjInstance::OperationType opType, ModBusObjInstance::ParamType paramType, const QVariant &param)
+void ModBusObjInstance::readPollParam(quint8 type)
 {
-    if(nullptr == m_modBusObj)
-        return;
-    QMetaObject::invokeMethod(m_modBusObj,"pollParam",Qt::AutoConnection,
-                              Q_ARG(quint8, opType),Q_ARG(quint8, paramType),
-                              Q_ARG(const QVariant &,param));
+    QMetaObject::invokeMethod(m_modBusObj,"readPollParam",Qt::AutoConnection,
+                              Q_ARG(quint8, type));
+
+}
+
+void ModBusObjInstance::writePollParam(quint8 type, const QVariant &value)
+{
+    QMetaObject::invokeMethod(m_modBusObj,"writePollParam",Qt::AutoConnection,
+                              Q_ARG(quint8, type),Q_ARG(const QVariant &,value));
+
 }
 
 void ModBusObjInstance::readModBusRegister(int slave, int addr, int readCount, bool readOnly)
 {
-    if(nullptr == m_modBusObj)
-        return;
     QMetaObject::invokeMethod(m_modBusObj,"readModBusRegister",Qt::AutoConnection,
                               Q_ARG(int, slave),Q_ARG(int, addr),Q_ARG(int, readCount),
                               Q_ARG(bool,readOnly));
@@ -525,26 +536,18 @@ void ModBusObjInstance::writeModBusRegister(int slave, int addr, const QVector<q
 
 void ModBusObjInstance::readContinuData(int slave, int dataType, int timeOut)
 {
-    if(nullptr == m_modBusObj)
-        return;
     QMetaObject::invokeMethod(m_modBusObj,"readContinuData",Qt::AutoConnection,
                               Q_ARG(int, slave),Q_ARG(int,dataType),Q_ARG(int,timeOut));
 }
 
 void ModBusObjInstance::startAlarmCycle()
 {
-    if(nullptr == m_modBusObj)
-        return;
     QMetaObject::invokeMethod(m_modBusObj,"startAlarmTimer");
 }
 
-void ModBusObjInstance::readSlaveReadOnlyData(int slave, QVariantHash &value)
+void ModBusObjInstance::readSlaveReadOnlyData(int slave)
 {
-    if(nullptr == m_modBusObj)
-        return;
-    m_modBusObj->readSlaveReadOnlyData(slave,value);
-//    QMetaObject::invokeMethod(m_modBusObj,"readSlaveReadOnlyData",
-//                              Q_ARG(int,slave),Q_ARG(QVariant &,value));
+    QMetaObject::invokeMethod(m_modBusObj,"readSlaveReadOnlyData",Q_ARG(int,slave));
 }
 
 ModBusObjInstance::ModBusObjInstance()
@@ -552,17 +555,6 @@ ModBusObjInstance::ModBusObjInstance()
     m_modBusObj = new ModBusObj;
     m_modBusObj->moveToThread(&m_thread);
     connect(&m_thread, &QThread::finished, m_modBusObj, &QObject::deleteLater);
-
-    //主机回传参数
-    connect(m_modBusObj,&ModBusObj::signalPollParam,this,&ModBusObjInstance::signalPollParam);
-    //读取的值
-    connect(m_modBusObj,&ModBusObj::signalReadValue,this,&ModBusObjInstance::signalReadValue);
-
-    //读取的连续数据
-    connect(m_modBusObj,&ModBusObj::signalContinuData,this,&ModBusObjInstance::signalReadContinuData);
-    //轮询的告警信息
-    connect(m_modBusObj,&ModBusObj::signalAlarmInfo,this,&ModBusObjInstance::signalAlarmInfo);
-
 
     m_thread.start();
 }

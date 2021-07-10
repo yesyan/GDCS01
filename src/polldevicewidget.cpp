@@ -8,7 +8,7 @@ PollDeviceWidget::PollDeviceWidget(QWidget *parent) :
     ui(new Ui::PollDeviceWidget)
 {
     ui->setupUi(this);
-    connect(ModBusObjInstance::getInstance(),&ModBusObjInstance::signalPollParam,this,&PollDeviceWidget::onRecvData);
+    connect(ModBusObjInstance::getInstance()->getModBusObj(),&ModBusObj::signalPollParam,this,&PollDeviceWidget::onRecvData);
 
     QRegExp rx ("((2[0-4]\\d|25[0-5]|[01]?\\d\\d?)\\.){3}(2[0-4]\\d|25[0-5]|[01]?\\d\\d?)") ;
     QValidator *validator = new QRegExpValidator(rx, this);
@@ -17,7 +17,8 @@ PollDeviceWidget::PollDeviceWidget(QWidget *parent) :
     ui->lineEdit_getaway->setValidator(validator);
     ui->lineEdit_remoteIp->setValidator(validator);
 
-    loadDevData();
+    //加载主机系统参数
+    ModBusObjInstance::getInstance()->readPollParam(0);
 }
 
 PollDeviceWidget::~PollDeviceWidget()
@@ -74,9 +75,9 @@ void PollDeviceWidget::on_pushButton_sysTime_clicked()
     PollSysParam sysParam;
     sysParam.sysDataTime1 = ui->spinBox_systime1->value();
     sysParam.sysDataTime2 = ui->spinBox_systime2->value();
-    sysParam.sysDataTime3 = ui->spinBox_systime1->value();
+    sysParam.sysDataTime3 = ui->spinBox_systime3->value();
 
-    ModBusObjInstance::getInstance()->pollParam(ModBusObjInstance::WRITE,ModBusObjInstance::PollSysParam,QVariant::fromValue(sysParam));
+    ModBusObjInstance::getInstance()->writePollParam(0,QVariant::fromValue(sysParam));
 }
 
 void PollDeviceWidget::on_pushButton_net_clicked()
@@ -90,7 +91,7 @@ void PollDeviceWidget::on_pushButton_net_clicked()
     netParam.remoteIP = ui->lineEdit_remoteIp->text();
     netParam.remotePort = ui->spinBox_remotePort->value();
 
-    ModBusObjInstance::getInstance()->pollParam(ModBusObjInstance::WRITE, ModBusObjInstance::PollNetParam, QVariant::fromValue(netParam));
+    ModBusObjInstance::getInstance()->writePollParam(1, QVariant::fromValue(netParam));
 
 }
 
@@ -107,33 +108,26 @@ void PollDeviceWidget::on_pushButton_serialport_clicked()
     auto databit = ui->comboBox_databit->currentText().toInt();
     tParam |= (databit & 0xf) << 4;
 
-    auto parity = ui->comboBox_pairty->currentText().toInt();
+    auto parity = ui->comboBox_pairty->currentIndex();
     tParam |= (parity & 0xf);
 
     sparam.param = tParam;
 
-    ModBusObjInstance::getInstance()->pollParam(ModBusObjInstance::WRITE, ModBusObjInstance::PollSpParam, QVariant::fromValue(sparam));
+    ModBusObjInstance::getInstance()->writePollParam(2, QVariant::fromValue(sparam));
 }
 
 void PollDeviceWidget::on_pushButton_sysparam_clicked()
 {
-    ModBusObjInstance::getInstance()->pollParam(ModBusObjInstance::READ,ModBusObjInstance::PollSysParam,QVariant());
+    ModBusObjInstance::getInstance()->readPollParam(0);
 }
 
 void PollDeviceWidget::on_pushButton_netparam_clicked()
 {
-    ModBusObjInstance::getInstance()->pollParam(ModBusObjInstance::READ,ModBusObjInstance::PollNetParam,QVariant());
+    ModBusObjInstance::getInstance()->readPollParam(1);
 }
 
 void PollDeviceWidget::on_pushButton_sparam_clicked()
 {
-    ModBusObjInstance::getInstance()->pollParam(ModBusObjInstance::READ,ModBusObjInstance::PollSpParam,QVariant());
-}
-
-void PollDeviceWidget::loadDevData()
-{
-    ModBusObjInstance::getInstance()->pollParam(ModBusObjInstance::READ,ModBusObjInstance::PollSysParam,QVariant());
-    ModBusObjInstance::getInstance()->pollParam(ModBusObjInstance::READ,ModBusObjInstance::PollNetParam,QVariant());
-    ModBusObjInstance::getInstance()->pollParam(ModBusObjInstance::READ,ModBusObjInstance::PollSpParam,QVariant());
+    ModBusObjInstance::getInstance()->readPollParam(2);
 }
 

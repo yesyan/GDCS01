@@ -12,7 +12,7 @@ DeviceChartView::DeviceChartView(QWidget *parent)
                 :QChartView(parent),m_chart(new QChart)
 {
     initUi();
-    connect(ModBusObjInstance::getInstance(),&ModBusObjInstance::signalReadContinuData,this,&DeviceChartView::onRenderView);
+    connect(ModBusObjInstance::getInstance()->getModBusObj(),&ModBusObj::signalContinuData,this,&DeviceChartView::onRenderView);
 
     setRubberBand(QChartView::RectangleRubberBand);
     //设置反走样

@@ -11,30 +11,28 @@ class ModBusObj : public QObject
 {
     Q_OBJECT
 
-public:
-
-    ModBusObj(QObject *parent = nullptr);
-    ~ModBusObj();
-
 signals:
+    //主机参数
     void signalPollParam(quint8 paramType, const QVariant &);
-
+    //分机参数
     void signalReadValue(int slave,int addr,const QByteArray &);
+    //分机绘图数据
     void signalContinuData(int type,const QByteArray &value);
     //报警信息
     void signalAlarmInfo(const QVariant &);
+    //分机特征值
+    void signalSlaveFV(int slave,const QVariant &value);
 
-public slots:
+private slots:
     //网络连接
     int netWorkConnect(const QString &ip,int port);
     //串口连接
     int serialPortConnect(const QString &dev,int baud,char parity,int dataBit,int stopBit);
 
-    //当前连接分机地址
-    int getConnectSlaveAddr();
-
-    //操作主机参数
-    void pollParam(quint8 opType, quint8 paramType,const QVariant &param);
+    //读取主机参数
+    void readPollParam(quint8 type);
+    //写入主机参数
+    void writePollParam(quint8 type,const QVariant &value);
 
     //根据地址读取数据
     void readModBusRegister(int slave,int addr,int readCount,bool readOnly = false);
@@ -46,12 +44,15 @@ public slots:
     //启动报警信息轮询定时器
     void startAlarmTimer();
     //请求分机只读数据
-    void readSlaveReadOnlyData(int slave, QVariantHash &value);
+    void readSlaveReadOnlyData(int slave);
 
 protected:
      void timerEvent(QTimerEvent *event) override;
 
 private:
+    ModBusObj();
+    ~ModBusObj();
+
     int stopConnect();
     void readPollSysParam();
     void readPollNetParam();
@@ -71,6 +72,9 @@ private:
     int m_timeOut = 0;
     int m_slave = 0;
     int m_readCount = 0;
+
+    friend class ModBusObjInstance;
+
 };
 
 
@@ -87,22 +91,14 @@ public:
     int connectToNet(const QString &ip,int port);
     int connectToSerialPort(const QString &dev,int baud,char parity,int dataBit,int stopBit);
 
-    //操作方式，读取或者写入
-    enum OperationType{
-        READ  = 0,
-        WRITE = 1,
-        ONLYREAD
-    };
-
-    enum ParamType{
-        PollSysParam = 0,   //主机系统参数
-        PollNetParam = 1,   //主机网络参数
-        PollSpParam =  2    //主机串口参数
-    };
+    ModBusObj* getModBusObj(){return m_modBusObj;}
 
 public:
-    //主机参数
-    void pollParam(OperationType opType,ParamType paramType,const QVariant &param);
+
+    //读取主机参数（0:主机系统参数 1:主机网络参数 2:主机串口参数）
+    void readPollParam(quint8 type);
+    //写入主机参数
+    void writePollParam(quint8 type,const QVariant &value);
 
     //根据地址读取数据
     void readModBusRegister(int slave,int addr,int readCount,bool readOnly = false);
@@ -114,18 +110,7 @@ public:
     //启动报警信息监测
     void startAlarmCycle();
     //请求分机的只读参数
-    void readSlaveReadOnlyData(int slave, QVariantHash &value);
-
-signals:
-    //读取到主机数据
-    void signalPollParam(quint8 type,const QVariant &);
-
-    //读取的数据
-    void signalReadValue(int slave,int addr,const QByteArray &);
-    //读取到的连续数据
-    void signalReadContinuData(int type,const QByteArray &value);
-    //报警信息
-    void signalAlarmInfo(const QVariant &);
+    void readSlaveReadOnlyData(int slave);
 
 private:
     ModBusObjInstance();
