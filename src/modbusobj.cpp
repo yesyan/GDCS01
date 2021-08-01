@@ -152,12 +152,16 @@ void ModBusObj::readModBusRegister(int slave, int addr, int readCount, bool read
         if(ret == -1){
             qInfo() << QStringLiteral("读取分机(%1)参数失败.").arg(slave);
             return;
+        }else{
+             qInfo() << QStringLiteral("读取分机(%1)参数成功.").arg(slave);
         }
     }else{
         auto ret = modbus_read_registers(m_modBusCtx, slave*100+addr, readCount, tmpData.data());
         if(ret == -1){
             qInfo() << QStringLiteral("读取分机(%1)参数失败.").arg(slave);
             return;
+        }else{
+            qInfo() << QStringLiteral("读取分机(%1)参数成功.").arg(slave);
         }
     }
     QByteArray byteData;
@@ -176,6 +180,10 @@ void ModBusObj::writeModBusRegister(int slave, int addr, const QVector<quint16> 
     if(ret == -1){
         qInfo() << QStringLiteral("写入分机(%1)参数失败.").arg(slave);
         return;
+    }else{
+
+        qInfo() << QStringLiteral("写入分机(%1)参数成功.").arg(slave);
+
     }
     //配置生效
     uint16_t tValue = 1;
@@ -185,14 +193,23 @@ void ModBusObj::writeModBusRegister(int slave, int addr, const QVector<quint16> 
 
 void ModBusObj::readContinuData(int slave,int dataType,int timeOut)
 {
+    int rv = -1;
     if(nullptr == m_modBusCtx)
         return;
 
     //选择数据
-    modbus_write_register(m_modBusCtx, slave*100+1, dataType);
+    rv = modbus_write_register(m_modBusCtx, slave*100+1, dataType);
+    if(rv == -1){
+        qInfo() << QStringLiteral("配置从机(%1)连续数据类型失败.").arg(slave);
+        return;
+    }
     //请求连续数据
     uint16_t tValue = 1;
-    modbus_write_register(m_modBusCtx, slave*100+30, tValue);
+    rv = modbus_write_register(m_modBusCtx, slave*100+30, tValue);
+    if(rv == -1){
+        qInfo() << QStringLiteral("配置从机(%1)连续数据请求失败.").arg(slave);
+        return;
+    }
 
     m_readCount = 0;
     m_slave = slave;
@@ -233,7 +250,7 @@ void ModBusObj::timerEvent(QTimerEvent *event)
     if(m_timerId == event->timerId()){
 
         if(m_readCount >= (m_timeOut/1000)){
-            qInfo() << QStringLiteral("读取分机(%1)连续数据超时.").arg(m_slave);
+            qInfo() << QStringLiteral("读取从机(%1)连续数据超时.").arg(m_slave);
             killTimer(m_timerId);
             return;
         }
@@ -304,12 +321,20 @@ void ModBusObj::timerEvent(QTimerEvent *event)
             }
 
             QVariantHash singleValue;
-            //硬件版本
-            singleValue.insert(HardwareVersion,QString::number(tmpData[0]));
-            //软件版本
-            singleValue.insert(SoftwareVersion,QString::number(tmpData[1]));
-            //设备ID信息
-            singleValue.insert(DeviceID,QString::number(tmpData[2]) + QString::number(tmpData[3]));
+
+            //if((tmpData[2]<<16 |tmpData[3])>0)
+           // {
+              //硬件版本
+              QString hw_tmp,soft_tmp;
+              hw_tmp.sprintf("v%d.%d.%d", tmpData[0] / 100, (tmpData[0] % 100) / 10, (tmpData[0] % 10));
+              soft_tmp.sprintf("v%d.%d.%d", tmpData[1] / 100, (tmpData[1] % 100) / 10, (tmpData[1] % 10));
+             singleValue.insert(HardwareVersion,QString::number(tmpData[0]));
+              //软件版本
+              singleValue.insert(SoftwareVersion,soft_tmp);
+              //设备ID信息
+              singleValue.insert(DeviceID,QString::number(tmpData[2]<<16 |tmpData[3]));
+          //  }
+
 
             tmpData.fill(0,11);
             readAddr = 100*slave + 16;
@@ -358,12 +383,15 @@ void ModBusObj::readPollSysParam()
     if(ret == -1){
         qInfo() << QStringLiteral("读取主机系统参数失败.");
     }
-    auto devId = (tmpData[2] << 16);
-    devId |= (tmpData[3] & 0xff);
+    auto devId = (tmpData[2] << 16) |(tmpData[3]);
 
     PollSysParam sysParam;
-    sysParam.hardVersion = QString::number(tmpData[0]);
-    sysParam.softVersion = QString::number(tmpData[1]);
+    QString hw_tmp,soft_tmp;
+    hw_tmp.sprintf("v%d.%d.%d", tmpData[0] / 100, (tmpData[0] % 100) / 10, (tmpData[0] % 10));
+    soft_tmp.sprintf("v%d.%d.%d", tmpData[1] / 100, (tmpData[1] % 100) / 10, (tmpData[1] % 10));
+    sysParam.hardVersion = hw_tmp;//QString::number(tmpData[0]);
+    sysParam.softVersion = soft_tmp;//QString::number(tmpData[1]);
+
     sysParam.devId = QString::number(devId);
 
     tmpData.fill(0);

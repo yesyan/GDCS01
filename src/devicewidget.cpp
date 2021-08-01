@@ -59,19 +59,19 @@ void DeviceWidget::onRecvModBusValue(int slave, int addr, const QByteArray &valu
         ui->comboBox_9_2->setCurrentText(QString::number(((tValue[9] >> 8) & 0xff)/10));
 
         //x方向
-        ui->spinBox_11->setValue(tValue[11]);
-        ui->spinBox_12->setValue(tValue[12]);
-        ui->spinBox_13->setValue(tValue[13]);
+        ui->spinBox_11->setValue((float)(1.0)*tValue[11]/10); //特征是数据解析时缩小10倍
+        ui->spinBox_12->setValue((float)(1.0)*tValue[12]/10);
+        ui->spinBox_13->setValue((float)(1.0)*tValue[13]/10);
         //y方向
-        ui->spinBox_14->setValue(tValue[14]);
-        ui->spinBox_15->setValue(tValue[15]);
-        ui->spinBox_16->setValue(tValue[16]);
+        ui->spinBox_14->setValue((float)(1.0)*tValue[14]/10);
+        ui->spinBox_15->setValue((float)(1.0)*tValue[15]/10);
+        ui->spinBox_16->setValue((float)(1.0)*tValue[16]/10);
         //y方向
-        ui->spinBox_17->setValue(tValue[17]);
-        ui->spinBox_18->setValue(tValue[18]);
-        ui->spinBox_19->setValue(tValue[19]);
+        ui->spinBox_17->setValue((float)(1.0)*tValue[17]/10);
+        ui->spinBox_18->setValue((float)(1.0)*tValue[18]/10);
+        ui->spinBox_19->setValue((float)(1.0)*tValue[19]/10);
         //温度报警预警值
-        ui->spinBox_20->setValue(tValue[20]);
+        ui->spinBox_20->setValue((float)(1.0)*tValue[20]/10);
         //采样间隔
         ui->spinBox_21->setValue(tValue[21]);
         //连续时间采样间隔
@@ -128,19 +128,19 @@ void DeviceWidget::initUi()
     connect(ui->pushButton_11_20,&QPushButton::clicked,this,[=](){
         QVector<quint16> tmpData;
         //X方向
-        tmpData.append(quint16(ui->spinBox_11->value()));
-        tmpData.append(quint16(ui->spinBox_12->value()));
-        tmpData.append(quint16(ui->spinBox_13->value()));
+        tmpData.append(quint16(ui->spinBox_11->value()*10));  //特征是数据发送时放大10倍
+        tmpData.append(quint16(ui->spinBox_12->value()*10));
+        tmpData.append(quint16(ui->spinBox_13->value()*10));
 
         //y方向
-        tmpData.append(quint16(ui->spinBox_14->value()));
-        tmpData.append(quint16(ui->spinBox_15->value()));
-        tmpData.append(quint16(ui->spinBox_16->value()));
+        tmpData.append(quint16(ui->spinBox_14->value()*10));
+        tmpData.append(quint16(ui->spinBox_15->value()*10));
+        tmpData.append(quint16(ui->spinBox_16->value()*10));
 
         //z方向
-        tmpData.append(quint16(ui->spinBox_17->value()));
-        tmpData.append(quint16(ui->spinBox_18->value()));
-        tmpData.append(quint16(ui->spinBox_19->value()));
+        tmpData.append(quint16(ui->spinBox_17->value()*10));
+        tmpData.append(quint16(ui->spinBox_18->value()*10));
+        tmpData.append(quint16(ui->spinBox_19->value()*10));
 
         ModBusObjInstance::getInstance()->writeModBusRegister(m_slave,11,tmpData);
 
@@ -151,7 +151,7 @@ void DeviceWidget::initUi()
 
         //温度预警
         tmpData.clear();
-        tmpData.append(quint16(ui->spinBox_20->value()));
+        tmpData.append(quint16(ui->spinBox_20->value()*10));
 
         //采样间隔
         tmpData.append(quint16(ui->spinBox_21->value()));
