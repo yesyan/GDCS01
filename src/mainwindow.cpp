@@ -52,8 +52,10 @@ void MainWindow::onRecvCycleInfo(const QVariant &value)
                 auto item = ui->tableWidget->item(index,cIndex);
                 if(tValue == QStringLiteral("告警")){
                     item->setText(tValue);
+                    item->setTextColor(Qt::red);
                 }else{
                     item->setText(tValue);
+                    item->setTextColor(QColor(2,65,132));
                 }
             }
         }

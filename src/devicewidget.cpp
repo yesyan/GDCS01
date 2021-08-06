@@ -91,6 +91,11 @@ void DeviceWidget::on_pushButton_reqData_clicked()
     ModBusObjInstance::getInstance()->readContinuData(m_slave,dataType);
 }
 
+void DeviceWidget::on_pushButton_reload_clicked()
+{
+    ModBusObjInstance::getInstance()->readModBusRegister(m_slave,0,SlaveReadSize);
+}
+
 void DeviceWidget::initUi()
 {
     connect(ui->toolButton_back,&QToolButton::clicked,this,[=](){
@@ -191,4 +196,9 @@ void DeviceWidget::initUi()
         tmpData.append(tValue);
         ModBusObjInstance::getInstance()->writeModBusRegister(m_slave,24,tmpData);
     });
+
+    ui->splitter->setStretchFactor(0,1);
+    ui->splitter->setStretchFactor(1,1);
+    ui->splitter_2->setStretchFactor(0,1);
+    ui->splitter_2->setStretchFactor(1,1);
 }

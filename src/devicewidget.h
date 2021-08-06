@@ -21,7 +21,10 @@ public slots:
     void onRecvModBusValue(int slave, int addr, const QByteArray &value);
 
 private slots:
+    //请求从机
     void on_pushButton_reqData_clicked();
+    //重新加载从机设备参数
+    void on_pushButton_reload_clicked();
 
 signals:
     void signalBack();

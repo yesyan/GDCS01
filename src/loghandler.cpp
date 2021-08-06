@@ -14,6 +14,8 @@
 #include <iostream>
 #include <QTextEdit>
 #include <QCoreApplication>
+#include <QAction>
+#include <QMenu>
 
 /************************************************************************************************************
  *                                                                                                          *
@@ -61,6 +63,18 @@ LogHandlerPrivate::LogHandlerPrivate() {
         textEdit = new QTextEdit;
         textEdit->setReadOnly(true);
         textEdit->document()->setMaximumBlockCount(1000);
+        textEdit->setContextMenuPolicy(Qt::CustomContextMenu);
+
+        //add clear action
+        auto clearAction = new QAction("clear");
+        clearAction->connect(clearAction,&QAction::triggered ,textEdit,[](){
+            textEdit->clear();
+        });
+        clearAction->connect(textEdit,&QTextEdit::customContextMenuRequested,textEdit,[clearAction](){
+            auto menu = textEdit->createStandardContextMenu();
+            menu->addAction(clearAction);
+            menu->exec(QCursor::pos());
+        });
     }
 
     auto logDirPath = QCoreApplication::applicationDirPath() + "/log";
